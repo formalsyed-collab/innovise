@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F8FAFD;
+  --foreground: #1C2E45;
+  --ink: #07111F;
+  --ink2: #0D1E35;
+  --ink3: #14284A;
+  --fire: #E8460A;
+  --fire2: #C83800;
+  --fire3: #FF6B35;
+  --gold: #F59E0B;
+  --gold2: #FCD34D;
+  --jade: #059669;
+  --jade2: #10B981;
+  --sky: #0EA5E9;
+  --rose: #EF4444;
+  --pearl: #F8FAFD;
+  --pearl2: #EEF2FB;
+  --mist: #E4EAF6;
+  --white: #FFFFFF;
+  --body-text: #1C2E45;
+  --dim: #566880;
+  --line: #D1DCF0;
+  --line2: #BFD0EC;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-ink3: var(--ink3);
+  --color-fire: var(--fire);
+  --color-fire2: var(--fire2);
+  --color-fire3: var(--fire3);
+  --color-gold: var(--gold);
+  --color-gold2: var(--gold2);
+  --color-jade: var(--jade);
+  --color-jade2: var(--jade2);
+  --color-sky: var(--sky);
+  --color-rose: var(--rose);
+  --color-pearl: var(--pearl);
+  --color-pearl2: var(--pearl2);
+  --color-mist: var(--mist);
+  --color-body-text: var(--body-text);
+  --color-dim: var(--dim);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  
+  --font-hf: var(--font-bricolage-grotesque), sans-serif;
+  --font-bf: var(--font-geist-sans), sans-serif;
+}
+
+body {
+  font-family: var(--font-bf);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-hf);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(228, 234, 246, 0.6);
+}
+
