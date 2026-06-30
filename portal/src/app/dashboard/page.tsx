@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Mail, Phone, MapPin, Key, LogOut, CheckCircle2, 
   Clock, AlertTriangle, FileText, Upload, Download, Award,
-  IndianRupee, ChevronRight, HelpCircle, Check, RefreshCw
+  IndianRupee, ChevronRight, HelpCircle, Check, RefreshCw, CreditCard
 } from 'lucide-react'
 
 // Define typings
@@ -185,7 +185,14 @@ const DASHBOARD_TRANSLATIONS = {
 
     docRequestsPending: "Document Requests Pending",
     startDate: "Start Date",
-    loadingPortal: "Loading your portal secure session..."
+    loadingPortal: "Loading your portal secure session...",
+
+    selectPaymentMethod: "Select Payment Method",
+    paymentMethodDesc: "Choose your preferred secure payment gateway to complete this transaction.",
+    payWithRazorpay: "Pay with Razorpay",
+    payWithPayU: "Pay with PayU",
+    razorpayDesc: "Pay via Cards, Netbanking, UPI, and Wallet",
+    payuDesc: "Pay securely via PayU checkout redirect"
   },
   hi: {
     welcome: "स्वागत है",
@@ -314,7 +321,14 @@ const DASHBOARD_TRANSLATIONS = {
 
     docRequestsPending: "दस्तावेज़ अनुरोध लंबित हैं",
     startDate: "शुरू होने की तारीख",
-    loadingPortal: "आपका सुरक्षित पोर्टल सत्र लोड हो रहा है..."
+    loadingPortal: "आपका सुरक्षित पोर्टल सत्र लोड हो रहा है...",
+
+    selectPaymentMethod: "भुगतान विधि चुनें",
+    paymentMethodDesc: "इस लेन-देन को पूरा करने के लिए अपनी पसंदीदा सुरक्षित भुगतान विधि चुनें।",
+    payWithRazorpay: "रेज़रपे (Razorpay) से भुगतान करें",
+    payWithPayU: "पेयू (PayU) से भुगतान करें",
+    razorpayDesc: "कार्ड, नेटबैंकिंग, यूपीआई और वॉलेट के माध्यम से भुगतान करें",
+    payuDesc: "पेयू सुरक्षित गेटवे के माध्यम से भुगतान करें"
   }
 }
 
@@ -342,6 +356,17 @@ export default function DashboardPage() {
     amount: number
     orderId: string
   } | null>(null)
+
+  // PayU and Payment Method Selection states
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
+  const [showMethodModal, setShowMethodModal] = useState(false)
+  const [payuMockData, setPayuMockData] = useState<{
+    invoiceId: string
+    description: string
+    amount: string
+    txnid: string
+  } | null>(null)
+  const [showPayuMockModal, setShowPayuMockModal] = useState(false)
 
   // Profile update state
   const [fullName, setFullName] = useState('')
@@ -532,6 +557,25 @@ export default function DashboardPage() {
       return
     }
     fetchData()
+
+    // Listen to PayU redirect query parameters
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const payment = params.get('payment')
+      const reason = params.get('reason')
+      const message = params.get('message')
+      
+      if (payment === 'success') {
+        alert('Payment successful via PayU! Your invoice has been updated.')
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } else if (payment === 'failed') {
+        alert(`Payment failed or cancelled. Reason: ${reason || 'Transaction declined'}`)
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } else if (payment === 'error') {
+        alert(`An error occurred during payment processing: ${message || 'Error'}`)
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    }
   }, [])
 
   const handleRefresh = () => {
@@ -934,6 +978,98 @@ export default function DashboardPage() {
     } finally {
       setPaymentLoadingId(null)
       setMockPaymentData(null)
+    }
+  }
+
+  // Handle PayU Payment flow
+  const handlePayUPayment = async (invoice: Invoice) => {
+    setPaymentLoadingId(invoice.id)
+    try {
+      const res = await fetch('/api/payments/payu/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: invoice.id })
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Failed to initialize PayU payment transaction.')
+        setPaymentLoadingId(null)
+        return
+      }
+
+      if (data.mock) {
+        // Show PayU mock modal
+        setPayuMockData({
+          invoiceId: data.invoice.id,
+          description: data.invoice.description,
+          amount: data.amount,
+          txnid: data.txnid
+        })
+        setShowPayuMockModal(true)
+        setPaymentLoadingId(null)
+      } else {
+        // Build programmatically a secure form and submit it to redirect to PayU
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = data.actionUrl
+
+        const fields: Record<string, string> = {
+          key: data.key,
+          txnid: data.txnid,
+          amount: data.amount,
+          productinfo: data.productinfo,
+          firstname: data.firstname,
+          email: data.email,
+          phone: data.phone,
+          hash: data.hash,
+          surl: `${window.location.origin}/api/payments/payu/verify-payment`,
+          furl: `${window.location.origin}/api/payments/payu/verify-payment`
+        }
+
+        Object.keys(fields).forEach((key) => {
+          const input = document.createElement('input')
+          input.type = 'hidden'
+          input.name = key
+          input.value = fields[key]
+          form.appendChild(input)
+        })
+
+        document.body.appendChild(form)
+        form.submit()
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error starting PayU checkout.')
+      setPaymentLoadingId(null)
+    }
+  }
+
+  // Handle Simulated Mock PayU Payment submit
+  const handlePayuMockPaymentSubmit = async () => {
+    if (!payuMockData) return
+    try {
+      setPaymentLoadingId(payuMockData.invoiceId)
+      setShowPayuMockModal(false)
+      const verifyRes = await fetch('/api/payments/payu/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: payuMockData.invoiceId,
+          mock: true
+        })
+      })
+      const verifyData = await verifyRes.json()
+      if (verifyRes.ok && verifyData.success) {
+        alert('Mock PayU Payment Successful!')
+        await fetchData()
+      } else {
+        alert(verifyData.error || 'Mock verification failed.')
+      }
+    } catch (err: any) {
+      alert(err.message || 'Verification connection error.')
+    } finally {
+      setPayuMockData(null)
+      setPaymentLoadingId(null)
     }
   }
 
@@ -2111,7 +2247,10 @@ export default function DashboardPage() {
                                   
                                   {invoice.status !== 'paid' && (
                                     <button
-                                      onClick={() => handleRazorpayPayment(invoice.id)}
+                                      onClick={() => {
+                                        setSelectedInvoice(invoice)
+                                        setShowMethodModal(true)
+                                      }}
                                       disabled={paymentLoadingId !== null}
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-fire to-fire2 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm shadow-fire/10 hover:shadow-md hover:shadow-fire/15 disabled:opacity-50"
                                     >
@@ -2381,6 +2520,135 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 bg-gradient-to-r from-fire to-fire2 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
               >
                 Confirm Mock Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Method Selector Modal */}
+      {showMethodModal && selectedInvoice && (
+        <div className="fixed inset-0 bg-ink/65 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-line shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-8 space-y-6 animate-scale-up">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-fire/10 text-fire flex items-center justify-center flex-shrink-0">
+                  <IndianRupee className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-ink">{t.selectPaymentMethod || "Select Payment Method"}</h3>
+                  <p className="text-xs text-dim">{t.paymentMethodDesc || "Choose your preferred payment gateway."}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowMethodModal(false)
+                  setSelectedInvoice(null)
+                }}
+                className="text-dim hover:text-ink hover:bg-pearl p-1.5 rounded-lg border border-transparent hover:border-line transition-all"
+              >
+                <span className="text-sm font-bold">&times;</span>
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-pearl border border-line space-y-2 text-xs">
+              <div className="flex justify-between gap-4">
+                <span className="text-dim">Invoice:</span>
+                <span className="font-bold text-ink text-right">{selectedInvoice.description}</span>
+              </div>
+              <div className="border-t border-line pt-2 flex justify-between text-sm font-bold">
+                <span className="text-ink">Total Amount:</span>
+                <span className="text-fire">₹{Number(selectedInvoice.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowMethodModal(false)
+                  handleRazorpayPayment(selectedInvoice.id)
+                }}
+                className="w-full p-4 border border-line hover:border-fire rounded-2xl transition-all cursor-pointer bg-white text-left flex items-start gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-sky/10 text-sky flex items-center justify-center flex-shrink-0 group-hover:bg-sky/20">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-ink group-hover:text-fire">{t.payWithRazorpay || "Pay with Razorpay"}</div>
+                  <div className="text-xs text-dim mt-0.5">{t.razorpayDesc || "Pay via Cards, Netbanking, UPI, and Wallet"}</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowMethodModal(false)
+                  handlePayUPayment(selectedInvoice)
+                }}
+                className="w-full p-4 border border-line hover:border-fire rounded-2xl transition-all cursor-pointer bg-white text-left flex items-start gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-jade/10 text-jade flex items-center justify-center flex-shrink-0 group-hover:bg-jade/20">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-ink group-hover:text-fire">{t.payWithPayU || "Pay with PayU"}</div>
+                  <div className="text-xs text-dim mt-0.5">{t.payuDesc || "Pay securely via PayU checkout redirect"}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PayU Mock Payment Modal */}
+      {showPayuMockModal && payuMockData && (
+        <div className="fixed inset-0 bg-ink/65 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-line shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-jade/10 text-jade flex items-center justify-center flex-shrink-0">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-ink">Simulated PayU Checkout</h3>
+                <p className="text-xs text-dim">PayU Demo Mode (No real charges)</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-pearl border border-line space-y-3 text-xs">
+              <div className="flex justify-between gap-4">
+                <span className="text-dim">Invoice:</span>
+                <span className="font-bold text-ink text-right">{payuMockData.description}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-dim">Invoice ID:</span>
+                <span className="font-mono text-ink">#{payuMockData.invoiceId.substring(0, 8).toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-dim">Transaction ID:</span>
+                <span className="font-mono text-ink">{payuMockData.txnid}</span>
+              </div>
+              <div className="border-t border-line pt-3 flex justify-between text-sm font-bold">
+                <span className="text-ink">Total Amount:</span>
+                <span className="text-jade">₹{Number(payuMockData.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowPayuMockModal(false)
+                  setPayuMockData(null)
+                  setPaymentLoadingId(null)
+                }}
+                className="flex-1 py-2.5 border border-line hover:border-rose hover:text-rose text-xs font-semibold rounded-xl transition-all cursor-pointer text-center bg-white"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={handlePayuMockPaymentSubmit}
+                disabled={paymentLoadingId !== null}
+                className="flex-1 py-2.5 bg-gradient-to-r from-jade to-jade2 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
+              >
+                Confirm PayU Payment
               </button>
             </div>
           </div>
