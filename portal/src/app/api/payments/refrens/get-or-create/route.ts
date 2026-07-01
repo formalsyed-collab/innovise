@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       invoiceType: 'INVOICE',
       currency: 'INR',
       contact: {
-        phone: client.phone || '',
-        email: client.email || ''
+        phone: '+91 78600 66560',
+        email: 'admin@innovise.in'
       },
       billedTo: {
         name: client.full_name,
