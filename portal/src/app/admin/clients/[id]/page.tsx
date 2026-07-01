@@ -55,6 +55,8 @@ interface Invoice {
   status: 'paid' | 'pending' | 'partial'
   due_date: string
   paid_date: string | null
+  refrens_invoice_id?: string | null
+  refrens_pdf_url?: string | null
 }
 
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -248,33 +250,322 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     setInvoiceFormLoading(true)
     setActionError(null)
 
-    const prof = Number(invProfFee) || 0
-    const gov = Number(invGovFee) || 0
-    const totalVal = prof + gov
-
-    const { error } = await supabase
-      .from('invoices')
-      .insert({
-        client_id: id,
-        description: invDesc,
-        professional_fees: prof,
-        government_fees: gov,
-        total: totalVal,
-        due_date: invDueDate,
-        status: 'pending'
+    try {
+      const res = await fetch('/api/admin/create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: id,
+          description: invDesc,
+          professionalFees: invProfFee,
+          governmentFees: invGovFee,
+          dueDate: invDueDate
+        })
       })
 
-    if (error) {
-      setActionError(error.message)
-    } else {
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate invoice.')
+      }
+
       setInvDesc('')
       setInvProfFee('')
       setInvGovFee('')
       setInvDueDate('')
       setShowInvoiceForm(false)
       await loadData()
+    } catch (err: any) {
+      setActionError(err.message || 'Error creating invoice.')
+    } finally {
+      setInvoiceFormLoading(false)
     }
-    setInvoiceFormLoading(false)
+  }
+
+  // Handle HTML print invoice generation (admin view fallback)
+  const handleDownloadInvoice = (invoice: Invoice) => {
+    if (invoice.refrens_pdf_url) {
+      window.open(invoice.refrens_pdf_url, '_blank')
+      return
+    }
+
+    const printWindow = window.open('', '_blank', 'width=800,height=900')
+    if (!printWindow) {
+      alert('Pop-up blocker is active. Please enable pop-ups to download invoices.')
+      return
+    }
+
+    const professionalFees = Number(invoice.professional_fees)
+    const governmentFees = Number(invoice.government_fees)
+    const total = Number(invoice.total)
+    const dueDate = new Date(invoice.due_date).toLocaleDateString('en-IN')
+    const paidDate = invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString('en-IN') : null
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - ${invoice.description}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+            
+            body {
+              font-family: 'Inter', sans-serif;
+              color: #1c2e45;
+              background-color: #ffffff;
+              margin: 0;
+              padding: 40px;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+
+            .invoice-container {
+              max-width: 800px;
+              margin: 0 auto;
+            }
+
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              border-bottom: 2px solid #d1dcf0;
+              padding-bottom: 24px;
+              margin-bottom: 32px;
+            }
+
+            .logo-title {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+            }
+
+            .company-name {
+              font-size: 22px;
+              font-weight: 800;
+              color: #07111F;
+              letter-spacing: 1px;
+              margin: 0;
+            }
+
+            .company-sub {
+              font-size: 10px;
+              font-weight: 600;
+              color: #566880;
+              letter-spacing: 1.5px;
+              margin: 2px 0 0 0;
+            }
+
+            .company-details {
+              font-size: 11px;
+              text-align: right;
+              color: #566880;
+              line-height: 1.6;
+            }
+
+            .details-grid {
+              display: grid;
+              grid-template-cols: 1fr 1fr;
+              gap: 40px;
+              margin-bottom: 40px;
+            }
+
+            .section-title {
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #566880;
+              letter-spacing: 1px;
+              margin-bottom: 8px;
+              border-bottom: 1px solid #d1dcf0;
+              padding-bottom: 6px;
+            }
+
+            .detail-text {
+              font-size: 13px;
+              line-height: 1.6;
+              margin: 0 0 4px 0;
+            }
+
+            .detail-text strong {
+              color: #07111F;
+            }
+
+            .invoice-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 40px;
+            }
+
+            .invoice-table th {
+              background-color: #f8fafd;
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #566880;
+              padding: 12px 16px;
+              text-align: left;
+              border-bottom: 1px solid #d1dcf0;
+            }
+
+            .invoice-table td {
+              font-size: 13px;
+              padding: 16px;
+              border-bottom: 1px solid #d1dcf0;
+              color: #1c2e45;
+            }
+
+            .invoice-table td.amount-col {
+              text-align: right;
+            }
+
+            .invoice-table th.amount-col {
+              text-align: right;
+            }
+
+            .summary-section {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-top: 20px;
+            }
+
+            .status-badge {
+              display: inline-block;
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              padding: 8px 16px;
+              border-radius: 50px;
+            }
+
+            .status-paid {
+              background-color: #d1f2e5;
+              color: #059669;
+              border: 1px solid #a7f3d0;
+            }
+
+            .status-pending {
+              background-color: #fee2e2;
+              color: #ef4444;
+              border: 1px solid #fca5a5;
+            }
+
+            .summary-table {
+              width: 320px;
+            }
+
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 0;
+              font-size: 13px;
+              color: #566880;
+            }
+
+            .summary-row.total-row {
+              font-size: 16px;
+              font-weight: 800;
+              color: #07111F;
+              border-top: 2px solid #d1dcf0;
+              padding-top: 12px;
+              margin-top: 8px;
+            }
+
+            .invoice-footer {
+              margin-top: 80px;
+              text-align: center;
+              font-size: 11px;
+              color: #566880;
+              border-top: 1px dashed #d1dcf0;
+              padding-top: 24px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="header">
+              <div class="logo-title">
+                <div style="width: 40px; height: 40px; background-color: #07111F; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                  <span style="color: white; font-weight: 900; font-size: 20px;">I</span>
+                </div>
+                <div>
+                  <h1 class="company-name">INNOVISE</h1>
+                  <p class="company-sub">CLIENT PORTAL</p>
+                </div>
+              </div>
+              <div class="company-details">
+                <strong>Innovise Consultant</strong><br />
+                Civil Lines, Kanpur, Uttar Pradesh<br />
+                Email: officialtaxinn@gmail.com<br />
+                Phone: +91 95061 66560
+              </div>
+            </div>
+
+            <div class="details-grid">
+              <div>
+                <h3 class="section-title">Billed To</h3>
+                <p class="detail-text"><strong>${client?.full_name || 'Valued Client'}</strong></p>
+                <p class="detail-text">${client?.phone || ''}</p>
+                <p class="detail-text">${client?.email || ''}</p>
+                ${client?.address ? `<p class="detail-text" style="white-space: pre-line;">${client.address}</p>` : ''}
+              </div>
+              <div style="text-align: right;">
+                <h3 class="section-title">Invoice Details</h3>
+                <p class="detail-text">Invoice ID: <strong>#${invoice.id.substring(0, 8).toUpperCase()}</strong></p>
+                <p class="detail-text">Due Date: <strong>${dueDate}</strong></p>
+                ${paidDate ? `<p class="detail-text">Payment Date: <strong>${paidDate}</strong></p>` : ''}
+              </div>
+            </div>
+
+            <table class="invoice-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th class="amount-col" style="width: 150px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Professional Fees for ${invoice.description}</td>
+                  <td class="amount-col">₹${professionalFees.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td>Government Fees / Out of Pocket Expenses</td>
+                  <td class="amount-col">₹${governmentFees.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="summary-section">
+              <div>
+                <span class="status-badge ${invoice.status === 'paid' ? 'status-paid' : 'status-pending'}">
+                  ${invoice.status.toUpperCase()}
+                </span>
+              </div>
+              <div class="summary-table">
+                <div class="summary-row">
+                  <span>Professional Fees:</span>
+                  <span>₹${professionalFees.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div class="summary-row">
+                  <span>Government Fees:</span>
+                  <span>₹${governmentFees.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div class="summary-row total-row">
+                  <span>Total Amount Due:</span>
+                  <span>₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="invoice-footer">
+              Thank you for choosing Innovise. For any billing queries, write to officialtaxinn@gmail.com
+            </div>
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
   }
 
   // 4. Toggle Invoice Status
@@ -1740,7 +2031,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               {invoice.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                           <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleDownloadInvoice(invoice)}
+                              className="px-3 py-1 border border-line hover:border-ink hover:text-ink text-xs font-semibold rounded-lg bg-white cursor-pointer transition-all hover:bg-pearl inline-flex items-center gap-1.5"
+                              title="Download Invoice"
+                            >
+                              <Download className="w-3.5 h-3.5 text-dim" />
+                              <span>Download</span>
+                            </button>
+
                             <button
                               onClick={() => handleToggleInvoice(invoice.id, invoice.status)}
                               className="px-3 py-1 border border-line hover:border-ink rounded-lg text-xs font-semibold bg-white cursor-pointer transition-all hover:bg-pearl"

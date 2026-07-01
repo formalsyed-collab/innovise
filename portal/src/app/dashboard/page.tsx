@@ -57,6 +57,8 @@ interface Invoice {
   status: 'paid' | 'pending' | 'partial'
   due_date: string
   paid_date: string | null
+  refrens_invoice_id?: string | null
+  refrens_pdf_url?: string | null
 }
 
 const DASHBOARD_TRANSLATIONS = {
@@ -1318,6 +1320,11 @@ export default function DashboardPage() {
 
   // Handle HTML print invoice generation
   const handleDownloadInvoice = (invoice: Invoice) => {
+    if (invoice.refrens_pdf_url) {
+      window.open(invoice.refrens_pdf_url, '_blank')
+      return
+    }
+
     const printWindow = window.open('', '_blank', 'width=800,height=900')
     if (!printWindow) {
       alert('Pop-up blocker is active. Please enable pop-ups to download invoices.')
