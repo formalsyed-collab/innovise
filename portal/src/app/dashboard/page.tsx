@@ -1264,6 +1264,7 @@ export default function DashboardPage() {
           firstname: data.firstname,
           email: data.email,
           phone: data.phone,
+          udf1: data.udf1 || '',
           hash: data.hash,
           surl: `${window.location.origin}/api/payments/payu/verify-payment`,
           furl: `${window.location.origin}/api/payments/payu/verify-payment`

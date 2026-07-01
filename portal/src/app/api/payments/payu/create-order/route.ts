@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const salt = process.env.PAYU_MERCHANT_SALT?.trim()
     const actionUrl = (process.env.PAYU_BASE_URL || 'https://test.payu.in/_payment').trim()
 
-    const txnid = `txn_${invoice.id.replace(/-/g, '')}_${Date.now()}`
+    const txnid = `txn_${Date.now()}`
     const amount = Number(invoice.total).toFixed(2)
     const productinfo = (invoice.description || `Invoice payment ${invoice.id}`)
       .replace(/&/g, 'and')
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-zA-Z0-9]/g, '')
     const email = (profile?.email || 'client@innovise.in').trim()
     const phone = (profile?.phone || '').replace(/[^0-9]/g, '')
+    const udf1 = invoice.id
 
     // 5. Check if we should run in mock mode
     if (!key || !salt) {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Generate SHA-512 Hash
     // Sequence: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT
-    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`
+    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|${udf1}||||||||||${salt}`
     const hash = crypto
       .createHash('sha512')
       .update(hashString)
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       firstname,
       email,
       phone,
+      udf1,
       hash,
       actionUrl,
       invoice: {

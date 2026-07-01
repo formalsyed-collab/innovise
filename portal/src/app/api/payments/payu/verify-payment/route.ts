@@ -50,29 +50,21 @@ export async function POST(request: NextRequest) {
     const key = formData.get('key') as string
     const payuHash = formData.get('hash') as string
     const salt = process.env.PAYU_MERCHANT_SALT?.trim()
+    const udf1 = formData.get('udf1') as string
 
-    if (!txnid || !payuHash || !status) {
+    if (!txnid || !payuHash || !status || !udf1) {
       return NextResponse.redirect(new URL('/dashboard?payment=failed&reason=missing_payload', request.url))
     }
 
-    // Extract invoice UUID from txnid. Format: txn_{invoice_id_no_dashes}_{timestamp}
-    const cleanId = txnid.split('_')[1]
-    let invoiceId = ''
-    if (cleanId && cleanId.length === 32) {
-      invoiceId = `${cleanId.slice(0, 8)}-${cleanId.slice(8, 12)}-${cleanId.slice(12, 16)}-${cleanId.slice(16, 20)}-${cleanId.slice(20)}`
-    }
-
-    if (!invoiceId) {
-      return NextResponse.redirect(new URL('/dashboard?payment=failed&reason=invalid_transaction_id', request.url))
-    }
+    const invoiceId = udf1
 
     if (!salt) {
       return NextResponse.redirect(new URL('/dashboard?payment=failed&reason=server_misconfiguration', request.url))
     }
 
     // Calculate reverse hash to verify signature:
-    // salt|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
-    const reverseHashString = `${salt}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`
+    // salt|status|udf10|udf9|udf8|udf7|udf6|udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
+    const reverseHashString = `${salt}|${status}|||||||||${udf1}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`
     const calculatedHash = crypto.createHash('sha512').update(reverseHashString).digest('hex')
 
     if (calculatedHash !== payuHash) {
