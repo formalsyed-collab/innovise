@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const email = formData.get('email') as string
     const key = formData.get('key') as string
     const payuHash = formData.get('hash') as string
-    const salt = process.env.PAYU_MERCHANT_SALT
+    const salt = process.env.PAYU_MERCHANT_SALT?.trim()
 
     if (!txnid || !payuHash || !status) {
       return NextResponse.redirect(new URL('/dashboard?payment=failed&reason=missing_payload', request.url))

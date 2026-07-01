@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const key = process.env.PAYU_MERCHANT_KEY
-    const salt = process.env.PAYU_MERCHANT_SALT
-    const actionUrl = process.env.PAYU_BASE_URL || 'https://test.payu.in/_payment'
+    const key = process.env.PAYU_MERCHANT_KEY?.trim()
+    const salt = process.env.PAYU_MERCHANT_SALT?.trim()
+    const actionUrl = (process.env.PAYU_BASE_URL || 'https://test.payu.in/_payment').trim()
 
     const txnid = `txn_${invoice.id.replace(/-/g, '')}_${Date.now()}`
     const amount = Number(invoice.total).toFixed(2)
