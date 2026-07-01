@@ -50,11 +50,31 @@ export async function POST(request: NextRequest) {
     let refrensPdfUrl: string | null = null
 
     const refrensUrlKey = process.env.REFRENS_URL_KEY?.trim()
-    const refrensApiToken = process.env.REFRENS_API_TOKEN?.trim()
+    const refrensAppId = process.env.REFRENS_APP_ID?.trim()
+    const refrensAppSecret = process.env.REFRENS_APP_SECRET?.trim()
 
-    // Only hit Refrens if API token is configured
-    if (refrensUrlKey && refrensApiToken) {
+    // Only hit Refrens if App credentials are configured
+    if (refrensUrlKey && refrensAppId && refrensAppSecret) {
       try {
+        // A. Dynamic Authentication to retrieve JWT Access Token
+        const authResponse = await fetch('https://api.refrens.com/v1/authentication', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            strategy: 'app-secret',
+            appId: refrensAppId,
+            appSecret: refrensAppSecret
+          })
+        })
+
+        const authData = await authResponse.json()
+        if (!authResponse.ok || !authData.accessToken) {
+          throw new Error(authData.message || 'Failed to retrieve access token from Refrens')
+        }
+
+        const accessToken = authData.accessToken
+
+        // B. Construct line items
         const lineItems = []
         if (prof > 0) {
           lineItems.push({
@@ -96,11 +116,12 @@ export async function POST(request: NextRequest) {
           lineItems
         }
 
-        const response = await fetch(`https://api.refrens.com/businesses/${refrensUrlKey}/invoices`, {
+        // C. Create Invoice using the dynamically generated Access Token
+        const response = await fetch(`https://api.refrens.com/v1/businesses/${refrensUrlKey}/invoices`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${refrensApiToken}`
+            'Authorization': `Bearer ${accessToken}`
           },
           body: JSON.stringify(payload)
         })
