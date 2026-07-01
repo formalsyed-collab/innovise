@@ -49,10 +49,14 @@ export async function POST(request: NextRequest) {
 
     const txnid = `txn_${invoice.id.replace(/-/g, '')}_${Date.now()}`
     const amount = Number(invoice.total).toFixed(2)
-    const productinfo = invoice.description || `Invoice payment ${invoice.id}`
-    const firstname = profile?.full_name?.split(' ')[0] || 'Client'
-    const email = profile?.email || 'client@innovise.in'
-    const phone = profile?.phone || ''
+    const productinfo = (invoice.description || `Invoice payment ${invoice.id}`)
+      .replace(/&/g, 'and')
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .trim()
+    const firstname = (profile?.full_name?.split(' ')[0] || 'Client')
+      .replace(/[^a-zA-Z0-9]/g, '')
+    const email = (profile?.email || 'client@innovise.in').trim()
+    const phone = (profile?.phone || '').replace(/[^0-9]/g, '')
 
     // 5. Check if we should run in mock mode
     if (!key || !salt) {
