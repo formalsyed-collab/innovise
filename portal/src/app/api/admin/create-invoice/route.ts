@@ -78,14 +78,14 @@ export async function POST(request: NextRequest) {
         const items = []
         if (prof > 0) {
           items.push({
-            name: 'Professional Fees',
+            name: description ? `Professional Fees for ${description}` : 'Professional Fees',
             quantity: 1,
             rate: prof
           })
         }
         if (gov > 0) {
           items.push({
-            name: 'Government Fees',
+            name: description ? `Government Fees for ${description}` : 'Government Fees',
             quantity: 1,
             rate: gov
           })
