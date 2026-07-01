@@ -282,10 +282,20 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   }
 
   // Handle HTML print invoice generation (admin view fallback)
-  const handleDownloadInvoice = (invoice: Invoice) => {
-    if (invoice.refrens_pdf_url) {
-      window.open(invoice.refrens_pdf_url, '_blank')
-      return
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    try {
+      const res = await fetch('/api/payments/refrens/get-or-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: invoice.id })
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        window.open(data.url, '_blank')
+        return
+      }
+    } catch (e) {
+      console.warn('Refrens on-demand generation failed, falling back to local print:', e)
     }
 
     const printWindow = window.open('', '_blank', 'width=800,height=900')

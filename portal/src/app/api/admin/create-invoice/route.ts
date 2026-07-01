@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (refrensUrlKey && refrensAppId && refrensAppSecret) {
       try {
         // A. Dynamic Authentication to retrieve JWT Access Token
-        const authResponse = await fetch('https://api.refrens.com/v1/authentication', {
+        const authResponse = await fetch('https://api.refrens.com/authentication', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -75,23 +75,23 @@ export async function POST(request: NextRequest) {
         const accessToken = authData.accessToken
 
         // B. Construct line items
-        const lineItems = []
+        const items = []
         if (prof > 0) {
-          lineItems.push({
+          items.push({
             name: 'Professional Fees',
             quantity: 1,
             rate: prof
           })
         }
         if (gov > 0) {
-          lineItems.push({
+          items.push({
             name: 'Government Fees',
             quantity: 1,
             rate: gov
           })
         }
-        if (lineItems.length === 0) {
-          lineItems.push({
+        if (items.length === 0) {
+          items.push({
             name: description,
             quantity: 1,
             rate: 0
@@ -111,13 +111,14 @@ export async function POST(request: NextRequest) {
           },
           billedTo: {
             name: client.full_name,
-            address: client.address || ''
+            address: client.address || '',
+            country: 'IN'
           },
-          lineItems
+          items
         }
 
         // C. Create Invoice using the dynamically generated Access Token
-        const response = await fetch(`https://api.refrens.com/v1/businesses/${refrensUrlKey}/invoices`, {
+        const response = await fetch(`https://api.refrens.com/businesses/${refrensUrlKey}/invoices`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -130,8 +131,8 @@ export async function POST(request: NextRequest) {
 
         if (response.ok && data) {
           // Store Refrens attributes if successfully returned
-          refrensInvoiceId = data.id || data.invoiceNumber || null
-          refrensPdfUrl = data.pdfUrl || data.shortUrl || data.publicUrl || null
+          refrensInvoiceId = data._id || data.id || data.invoiceNumber || null
+          refrensPdfUrl = data.share?.pdf || data.share?.link || data.pdfUrl || data.shortUrl || null
         } else {
           console.warn('Refrens API rejected invoice generation:', data)
         }
