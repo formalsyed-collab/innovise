@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Mail, Phone, MapPin, Key, LogOut, CheckCircle2, 
   Clock, AlertTriangle, FileText, Upload, Download, Award,
-  IndianRupee, ChevronRight, HelpCircle, Check, RefreshCw, CreditCard
+  IndianRupee, ChevronRight, HelpCircle, Check, RefreshCw, CreditCard,
+  Plus, X
 } from 'lucide-react'
 
 // Define typings
@@ -30,6 +31,7 @@ interface Service {
 
 interface DocumentItem {
   id: string
+  service_id: string | null
   file_name: string
   storage_path: string
   doc_type: string
@@ -192,7 +194,18 @@ const DASHBOARD_TRANSLATIONS = {
     payWithRazorpay: "Pay with Razorpay",
     payWithPayU: "Pay with PayU",
     razorpayDesc: "Pay via Cards, Netbanking, UPI, and Wallet",
-    payuDesc: "Pay securely via PayU checkout redirect"
+    payuDesc: "Pay securely via PayU checkout redirect",
+    initiateNewService: "Initiate New Service",
+    selectServiceCategory: "Select Category",
+    selectServiceToStart: "Select Service to Start",
+    requirementsPlaceholder: "Specify any custom requirements or comments (optional)...",
+    uploadDocForService: "Upload Documents for this Service",
+    selectDocType: "Select Document Type",
+    customDocTypePlaceholder: "e.g. GST Certificate, Aadhaar Card, PAN Card",
+    noDocsForService: "No documents uploaded for this service yet.",
+    uploadedDocs: "Uploaded Documents",
+    uploadSuccess: "Document uploaded successfully!",
+    initiating: "Initiating..."
   },
   hi: {
     welcome: "स्वागत है",
@@ -328,7 +341,128 @@ const DASHBOARD_TRANSLATIONS = {
     payWithRazorpay: "रेज़रपे (Razorpay) से भुगतान करें",
     payWithPayU: "पेयू (PayU) से भुगतान करें",
     razorpayDesc: "कार्ड, नेटबैंकिंग, यूपीआई और वॉलेट के माध्यम से भुगतान करें",
-    payuDesc: "पेयू सुरक्षित गेटवे के माध्यम से भुगतान करें"
+    payuDesc: "पेयू सुरक्षित गेटवे के माध्यम से भुगतान करें",
+    initiateNewService: "नई सेवा शुरू करें",
+    selectServiceCategory: "श्रेणी चुनें",
+    selectServiceToStart: "शुरू करने के लिए सेवा चुनें",
+    requirementsPlaceholder: "कोई भी कस्टम आवश्यकताएं या टिप्पणियां निर्दिष्ट करें (वैकल्पिक)...",
+    uploadDocForService: "इस सेवा के लिए दस्तावेज़ अपलोड करें",
+    selectDocType: "दस्तावेज़ का प्रकार चुनें",
+    customDocTypePlaceholder: "जैसे: जीएसटी प्रमाण पत्र, आधार कार्ड, पैन कार्ड",
+    noDocsForService: "इस सेवा के लिए अभी तक कोई दस्तावेज़ अपलोड नहीं किया गया है।",
+    uploadedDocs: "अपलोड किए गए दस्तावेज़",
+    uploadSuccess: "दस्तावेज़ सफलतापूर्वक अपलोड हो गया!",
+    initiating: "शुरू किया जा रहा है..."
+  }
+}
+
+const LANDING_SERVICES_BY_CAT = {
+  startup: {
+    label: "Startup India",
+    emoji: "🚀",
+    services: [
+      { key: "startup-india", name: "Startup India Registration" },
+      { key: "80iac-startup-exemption", name: "80-IAC Tax Exemption" },
+      { key: "private-limited-company", name: "Private Limited Company Registration" },
+      { key: "one-person-company", name: "One Person Company (OPC)" },
+      { key: "msme-udyam", name: "MSME / Udyam Registration" },
+      { key: "trademark-registration", name: "Trademark Registration" }
+    ]
+  },
+  registration: {
+    label: "Business Registration",
+    emoji: "🏢",
+    services: [
+      { key: "private-limited-company", name: "Private Limited Company Registration" },
+      { key: "llp-registration", name: "LLP Registration" },
+      { key: "one-person-company", name: "One Person Company (OPC)" },
+      { key: "partnership-firm", name: "Partnership Firm Registration" },
+      { key: "sole-proprietorship", name: "Sole Proprietorship Registration" },
+      { key: "section-8-ngo", name: "Section 8 Company / NGO" },
+      { key: "trust-registration", name: "Trust Registration" },
+      { key: "society-registration", name: "Society Registration" },
+      { key: "indian-subsidiary", name: "Indian Subsidiary Registration" },
+      { key: "digital-signature", name: "Digital Signature (DSC)" },
+      { key: "msme-udyam", name: "MSME / Udyam Registration" },
+      { key: "iec-code", name: "IEC / Import Export Code" },
+      { key: "barcode-registration", name: "Barcode Registration" },
+      { key: "virtual-office", name: "Virtual Office for Registration" }
+    ]
+  },
+  gst: {
+    label: "GST & Tax",
+    emoji: "📊",
+    services: [
+      { key: "gst-registration", name: "GST Registration" },
+      { key: "gst-return-filing", name: "GST Return Filing" },
+      { key: "gstr-9-annual-return", name: "GSTR-9 Annual Return" },
+      { key: "gst-cancellation", name: "GST Cancellation / Surrender" },
+      { key: "gst-einvoice", name: "GST E-Invoice Setup" },
+      { key: "eway-bill", name: "E-Way Bill Registration" },
+      { key: "income-tax-return", name: "Income Tax Return (ITR) Filing" },
+      { key: "tds-return-filing", name: "TDS Return Filing" },
+      { key: "pf-return-filing", name: "PF Return Filing" },
+      { key: "input-tax-credit", name: "Input Tax Credit (ITC) Claim" }
+    ]
+  },
+  compliance: {
+    label: "Compliance & MCA",
+    emoji: "📋",
+    services: [
+      { key: "annual-compliance-pvt", name: "Annual Compliance – Private Limited" },
+      { key: "annual-compliance-llp", name: "Annual Compliance – LLP" },
+      { key: "bookkeeping", name: "Bookkeeping & Accounting" },
+      { key: "director-kyc", name: "Director KYC (DIR-3 KYC)" },
+      { key: "change-company-name", name: "Change Company Name" },
+      { key: "change-registered-office", name: "Change Registered Office" },
+      { key: "share-transfer", name: "Issue / Transfer of Shares" },
+      { key: "winding-up", name: "Company Winding Up / Strike Off" },
+      { key: "12a-80g", name: "12A & 80G Registration" },
+      { key: "fcra-registration", name: "FCRA Registration" }
+    ]
+  },
+  trademark: {
+    label: "Trademark & IPR",
+    emoji: "™️",
+    services: [
+      { key: "trademark-registration", name: "Trademark Registration" },
+      { key: "trademark-renewal", name: "Trademark Renewal" },
+      { key: "trademark-objection", name: "Trademark Objection Reply" },
+      { key: "international-trademark", name: "International Trademark (Madrid)" },
+      { key: "copyright-registration", name: "Copyright Registration" },
+      { key: "patent-registration", name: "Patent Registration" },
+      { key: "design-registration", name: "Design Registration" },
+      { key: "ip-dispute", name: "IP Dispute Resolution" }
+    ]
+  },
+  license: {
+    label: "Licenses",
+    emoji: "🏛️",
+    services: [
+      { key: "fssai-registration", name: "FSSAI Food License" },
+      { key: "drug-license", name: "Drug License" },
+      { key: "iso-certification", name: "ISO Certification" },
+      { key: "ayush-license", name: "AYUSH License" },
+      { key: "factory-license", name: "Factory License" },
+      { key: "shop-establishment", name: "Shop & Establishment License" },
+      { key: "rera-registration", name: "RERA Registration" },
+      { key: "bis-certification", name: "BIS Certification" },
+      { key: "medical-device-reg", name: "Medical Device Registration" },
+      { key: "apeda-registration", name: "APEDA Registration" }
+    ]
+  },
+  international: {
+    label: "International",
+    emoji: "🌍",
+    services: [
+      { key: "company-in-uae", name: "Company Registration in UAE / Dubai" },
+      { key: "company-in-uk", name: "Company Registration in UK" },
+      { key: "company-in-usa", name: "Company Registration in USA" },
+      { key: "company-in-singapore", name: "Company Registration in Singapore" },
+      { key: "company-in-canada", name: "Company Registration in Canada" },
+      { key: "company-in-australia", name: "Company Registration in Australia" },
+      { key: "dubai-free-zone", name: "Dubai Free Zone Setup" }
+    ]
   }
 }
 
@@ -337,6 +471,15 @@ export default function DashboardPage() {
   const supabase = createClient()
 
   // State Management
+  const [showInitiateModal, setShowInitiateModal] = useState(false)
+  const [selectedInitCategory, setSelectedInitCategory] = useState<keyof typeof LANDING_SERVICES_BY_CAT>('startup')
+  const [selectedInitService, setSelectedInitService] = useState('')
+  const [customInitNotes, setCustomInitNotes] = useState('')
+  const [initiatingService, setInitiatingService] = useState(false)
+
+  const [serviceUploadingId, setServiceUploadingId] = useState<string | null>(null)
+  const [serviceUploadDocType, setServiceUploadDocType] = useState<{[serviceId: string]: string}>({})
+  const [customDocTypeInput, setCustomDocTypeInput] = useState<{[serviceId: string]: string}>({})
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'documents' | 'payments' | 'profile'>('overview')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -357,9 +500,7 @@ export default function DashboardPage() {
     orderId: string
   } | null>(null)
 
-  // PayU and Payment Method Selection states
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
-  const [showMethodModal, setShowMethodModal] = useState(false)
+  // PayU states
   const [payuMockData, setPayuMockData] = useState<{
     invoiceId: string
     description: string
@@ -806,6 +947,107 @@ export default function DashboardPage() {
       alert(err.message || 'Error submitting query.')
     } finally {
       setQuerySubmitting(false)
+    }
+  }
+
+  // Handle client-side service initiation
+  const handleInitiateService = async () => {
+    if (!selectedInitService || !profile) return
+    setInitiatingService(true)
+    try {
+      const res = await fetch('/api/services/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          serviceName: selectedInitService,
+          notes: customInitNotes.trim() || undefined
+        })
+      })
+
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+
+      alert(lang === 'en' ? 'Service initiated successfully!' : 'सेवा सफलतापूर्वक शुरू की गई!')
+      setShowInitiateModal(false)
+      setSelectedInitService('')
+      setCustomInitNotes('')
+      // Refresh list
+      await fetchData()
+    } catch (err: any) {
+      alert(err.message || 'Error initiating service.')
+    } finally {
+      setInitiatingService(false)
+    }
+  }
+
+  // Handle file upload linked to specific service_id
+  const handleServiceFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, serviceId: string) => {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+
+    setServiceUploadingId(serviceId)
+
+    // Validate type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      alert(lang === 'en' ? 'Invalid file type. Only PDF, JPG, and PNG are allowed.' : 'अमान्य फ़ाइल प्रकार। केवल PDF, JPG और PNG की अनुमति है।')
+      setServiceUploadingId(null)
+      return
+    }
+
+    // Validate size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert(lang === 'en' ? 'File is too large. Maximum size is 10MB.' : 'फ़ाइल बहुत बड़ी है। अधिकतम आकार 10MB है।')
+      setServiceUploadingId(null)
+      return
+    }
+
+    // Get selected doc type or custom input
+    const selectedType = serviceUploadDocType[serviceId] || 'GST Certificate'
+    let finalDocType = selectedType
+    if (selectedType === 'CUSTOM') {
+      finalDocType = customDocTypeInput[serviceId]?.trim() || 'General Document'
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const storagePath = `${profile.id}/${crypto.randomUUID()}.${fileExt}`
+
+      // 1. Upload to Supabase Storage
+      const { error: storageErr } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, file)
+
+      if (storageErr) throw storageErr
+
+      // 2. Insert record in Documents table
+      const { error: insertErr } = await supabase
+        .from('documents')
+        .insert({
+          client_id: profile.id,
+          service_id: serviceId,
+          file_name: file.name,
+          storage_path: storagePath,
+          doc_type: finalDocType,
+          status: 'submitted',
+          uploaded_by: 'client'
+        })
+
+      if (insertErr) throw insertErr
+
+      alert(t.uploadSuccess || 'Document uploaded successfully!')
+      // Clear input fields for this service
+      setServiceUploadDocType(prev => ({ ...prev, [serviceId]: '' }))
+      setCustomDocTypeInput(prev => ({ ...prev, [serviceId]: '' }))
+
+      // Refresh data
+      await fetchData()
+    } catch (err: any) {
+      alert(err.message || 'Error uploading file.')
+    } finally {
+      setServiceUploadingId(null)
     }
   }
 
@@ -1647,9 +1889,22 @@ export default function DashboardPage() {
           {/* TAB 2: MY SERVICES */}
           {activeTab === 'services' && (
             <div className="space-y-6 animate-fade-in">
-              <div>
-                <h2 className="text-2xl font-extrabold text-ink tracking-tight">{t.myRegisteredServices}</h2>
-                <p className="text-sm text-dim mt-1">{t.servicesDesc}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-ink tracking-tight">{t.myRegisteredServices}</h2>
+                  <p className="text-sm text-dim mt-1">{t.servicesDesc}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedInitCategory('startup')
+                    setSelectedInitService(LANDING_SERVICES_BY_CAT.startup.services[0].name)
+                    setShowInitiateModal(true)
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-fire to-fire2 text-white font-bold text-xs rounded-xl shadow-md shadow-fire/15 transition-all inline-flex items-center gap-1.5 cursor-pointer self-start sm:self-center hover:shadow-lg hover:-translate-y-0.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t.initiateNewService}</span>
+                </button>
               </div>
 
               {services.length === 0 ? (
@@ -1770,6 +2025,111 @@ export default function DashboardPage() {
                             <p className="text-dim leading-relaxed">{service.notes}</p>
                           </div>
                         )}
+
+                        {/* Service Documents Upload & List */}
+                        <div className="mt-6 pt-6 border-t border-line space-y-4">
+                          <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-fire" />
+                            {t.uploadedDocs}
+                          </h4>
+
+                          {/* Documents List */}
+                          {(() => {
+                            const serviceDocs = documents.filter(d => d.service_id === service.id)
+                            if (serviceDocs.length === 0) {
+                              return (
+                                <p className="text-xs text-dim italic pl-1">{t.noDocsForService}</p>
+                              )
+                            }
+                            return (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {serviceDocs.map(doc => (
+                                  <div key={doc.id} className="p-3 bg-pearl border border-line rounded-xl flex items-center justify-between text-xs hover:border-line2 transition-all">
+                                    <div className="min-w-0 pr-2">
+                                      <span className="font-bold text-ink block truncate" title={doc.file_name}>{doc.file_name}</span>
+                                      <span className="text-[10px] text-dim block mt-0.5">
+                                        Type: <strong>{doc.doc_type || 'General'}</strong> &bull; {new Date(doc.created_at).toLocaleDateString('en-IN')}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                        doc.status === 'verified' ? 'bg-jade/10 text-jade' :
+                                        doc.status === 'submitted' ? 'bg-sky/10 text-sky' :
+                                        'bg-gold/10 text-gold'
+                                      }`}>
+                                        {doc.status}
+                                      </span>
+                                      <button
+                                        onClick={() => handleDownload(doc.storage_path, doc.file_name)}
+                                        className="p-1.5 hover:bg-mist rounded-lg border border-line text-dim hover:text-ink transition-all cursor-pointer animate-fade-in"
+                                        title={t.download}
+                                      >
+                                        <Download className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          })()}
+
+                          {/* Upload Area */}
+                          <div className="bg-pearl/30 border border-line rounded-xl p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              {/* Document Type Selector */}
+                              <div className="flex-1">
+                                <label className="text-[11px] font-bold text-dim block mb-1">{t.selectDocType}</label>
+                                <select
+                                  value={serviceUploadDocType[service.id] || 'GST Certificate'}
+                                  onChange={(e) => setServiceUploadDocType(prev => ({ ...prev, [service.id]: e.target.value }))}
+                                  className="w-full text-xs font-medium bg-white border border-line rounded-lg p-2 text-ink outline-none focus:border-fire transition-all cursor-pointer"
+                                >
+                                  <option value="GST Certificate">GST Certificate</option>
+                                  <option value="PAN Card">PAN Card</option>
+                                  <option value="Aadhaar Card">Aadhaar Card</option>
+                                  <option value="Electricity Bill">Electricity Bill (Address Proof)</option>
+                                  <option value="Rent Agreement">Rent Agreement</option>
+                                  <option value="MSME Certificate">MSME / Udyam Certificate</option>
+                                  <option value="FSSAI License">FSSAI License</option>
+                                  <option value="Trademark Certificate">Trademark Certificate</option>
+                                  <option value="CUSTOM">Custom Document Type...</option>
+                                </select>
+                              </div>
+
+                              {/* Custom Type Input if 'CUSTOM' selected */}
+                              {serviceUploadDocType[service.id] === 'CUSTOM' && (
+                                <div className="flex-1">
+                                  <label className="text-[11px] font-bold text-dim block mb-1">Enter Document Name</label>
+                                  <input
+                                    type="text"
+                                    placeholder={t.customDocTypePlaceholder}
+                                    value={customDocTypeInput[service.id] || ''}
+                                    onChange={(e) => setCustomDocTypeInput(prev => ({ ...prev, [service.id]: e.target.value }))}
+                                    className="w-full text-xs font-medium bg-white border border-line rounded-lg p-2 text-ink outline-none focus:border-fire transition-all"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Direct File Input Selector */}
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-grow">
+                                <label className="relative inline-flex items-center gap-2 px-3 py-2 bg-white border border-line hover:border-fire hover:text-fire text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm">
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>{serviceUploadingId === service.id ? 'Uploading...' : 'Choose File'}</span>
+                                  <input
+                                    type="file"
+                                    accept=".pdf,image/jpeg,image/png"
+                                    onChange={(e) => handleServiceFileUpload(e, service.id)}
+                                    disabled={serviceUploadingId === service.id}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                  />
+                                </label>
+                              </div>
+                              <span className="text-[10px] text-dim">{t.uploadLimits}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )
                   })}
@@ -2247,10 +2607,7 @@ export default function DashboardPage() {
                                   
                                   {invoice.status !== 'paid' && (
                                     <button
-                                      onClick={() => {
-                                        setSelectedInvoice(invoice)
-                                        setShowMethodModal(true)
-                                      }}
+                                      onClick={() => handlePayUPayment(invoice)}
                                       disabled={paymentLoadingId !== null}
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-fire to-fire2 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm shadow-fire/10 hover:shadow-md hover:shadow-fire/15 disabled:opacity-50"
                                     >
@@ -2276,51 +2633,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Payment Instructions Details Box */}
-                  <div className="p-6 border border-line rounded-2xl bg-pearl/30 space-y-4">
-                    <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                      <IndianRupee className="w-5 h-5 text-fire" />
-                      {t.howToPay}
-                    </h3>
-                    <p className="text-xs text-dim leading-relaxed">
-                      {t.howToPayDesc}
-                    </p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                      {/* Bank Details */}
-                      <div className="space-y-2 text-xs">
-                        <span className="font-bold text-ink block uppercase tracking-wide text-[10px] text-gray-400">{t.bankTransferTitle}</span>
-                        <div className="space-y-1 text-dim">
-                          <p>{t.accountName}: <strong>Innovise Consultant</strong></p>
-                          <p>{t.bank}: <strong>HDFC Bank Ltd</strong></p>
-                          <p>{t.accountNumber}: <strong>50200084729173</strong></p>
-                          <p>{t.ifscCode}: <strong>HDFC0000216</strong></p>
-                          <p>{t.branch}: <strong>Civil Lines, Kanpur</strong></p>
-                        </div>
-                      </div>
 
-                      {/* UPI Details */}
-                      <div className="space-y-2 text-xs">
-                        <span className="font-bold text-ink block uppercase tracking-wide text-[10px] text-gray-400">{t.upiTransferTitle}</span>
-                        <div className="space-y-1 text-dim">
-                          <p>{t.upiId}: <strong>innovise@hdfcbank</strong></p>
-                          <p>{t.gpayPhonePe}: <strong>+91-95061-66560</strong></p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <span className="text-xs text-dim">{t.paymentHelp}</span>
-                      <a
-                        href="https://wa.me/919506166560?text=Hi%20Innovise%20Consultant%2C%20I%20have%20made%20a%20payment%20towards%20my%20dues.%20Please%20verify%20my%20invoice."
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#25D366] hover:bg-[#25D366]/5 text-[#25D366] text-xs font-bold rounded-lg transition-all cursor-pointer"
-                      >
-                        {t.whatsappContact}
-                      </a>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
@@ -2526,78 +2839,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Payment Method Selector Modal */}
-      {showMethodModal && selectedInvoice && (
-        <div className="fixed inset-0 bg-ink/65 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl border border-line shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-8 space-y-6 animate-scale-up">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-fire/10 text-fire flex items-center justify-center flex-shrink-0">
-                  <IndianRupee className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-ink">{t.selectPaymentMethod || "Select Payment Method"}</h3>
-                  <p className="text-xs text-dim">{t.paymentMethodDesc || "Choose your preferred payment gateway."}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowMethodModal(false)
-                  setSelectedInvoice(null)
-                }}
-                className="text-dim hover:text-ink hover:bg-pearl p-1.5 rounded-lg border border-transparent hover:border-line transition-all"
-              >
-                <span className="text-sm font-bold">&times;</span>
-              </button>
-            </div>
 
-            <div className="p-4 rounded-2xl bg-pearl border border-line space-y-2 text-xs">
-              <div className="flex justify-between gap-4">
-                <span className="text-dim">Invoice:</span>
-                <span className="font-bold text-ink text-right">{selectedInvoice.description}</span>
-              </div>
-              <div className="border-t border-line pt-2 flex justify-between text-sm font-bold">
-                <span className="text-ink">Total Amount:</span>
-                <span className="text-fire">₹{Number(selectedInvoice.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setShowMethodModal(false)
-                  handleRazorpayPayment(selectedInvoice.id)
-                }}
-                className="w-full p-4 border border-line hover:border-fire rounded-2xl transition-all cursor-pointer bg-white text-left flex items-start gap-3 group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-sky/10 text-sky flex items-center justify-center flex-shrink-0 group-hover:bg-sky/20">
-                  <IndianRupee className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-ink group-hover:text-fire">{t.payWithRazorpay || "Pay with Razorpay"}</div>
-                  <div className="text-xs text-dim mt-0.5">{t.razorpayDesc || "Pay via Cards, Netbanking, UPI, and Wallet"}</div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowMethodModal(false)
-                  handlePayUPayment(selectedInvoice)
-                }}
-                className="w-full p-4 border border-line hover:border-fire rounded-2xl transition-all cursor-pointer bg-white text-left flex items-start gap-3 group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-jade/10 text-jade flex items-center justify-center flex-shrink-0 group-hover:bg-jade/20">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-ink group-hover:text-fire">{t.payWithPayU || "Pay with PayU"}</div>
-                  <div className="text-xs text-dim mt-0.5">{t.payuDesc || "Pay securely via PayU checkout redirect"}</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* PayU Mock Payment Modal */}
       {showPayuMockModal && payuMockData && (
@@ -2781,6 +3023,147 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 border border-line hover:border-rose hover:text-rose text-xs font-semibold rounded-xl transition-all cursor-pointer text-center bg-white disabled:opacity-50"
               >
                 {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Initiate New Service Modal */}
+      {showInitiateModal && (
+        <div className="fixed inset-0 bg-ink/65 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-line shadow-2xl max-w-2xl w-full overflow-hidden p-6 sm:p-8 space-y-6 relative animate-scale-up max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-start flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-fire/10 text-fire flex items-center justify-center flex-shrink-0">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-ink">
+                    {t.initiateNewService}
+                  </h3>
+                  <p className="text-xs text-dim">
+                    {lang === 'en' ? 'Select from all landing page services' : 'लैंडिंग पेज की सभी सेवाओं में से चुनें'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!initiatingService) {
+                    setShowInitiateModal(false)
+                    setSelectedInitService('')
+                    setCustomInitNotes('')
+                  }
+                }}
+                disabled={initiatingService}
+                className="text-dim hover:text-ink hover:bg-pearl p-1.5 rounded-lg border border-transparent hover:border-line transition-all disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-grow overflow-y-auto space-y-6 pr-1">
+              {/* Category selector */}
+              <div>
+                <label className="text-[11px] font-bold text-dim uppercase tracking-wider block mb-2">{t.selectServiceCategory}</label>
+                <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+                  {(Object.keys(LANDING_SERVICES_BY_CAT) as Array<keyof typeof LANDING_SERVICES_BY_CAT>).map(catKey => {
+                    const cat = LANDING_SERVICES_BY_CAT[catKey]
+                    const isActive = selectedInitCategory === catKey
+                    return (
+                      <button
+                        key={catKey}
+                        type="button"
+                        onClick={() => {
+                          setSelectedInitCategory(catKey)
+                          setSelectedInitService(cat.services[0].name)
+                        }}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-ink text-white shadow-md'
+                            : 'bg-pearl border border-line text-dim hover:bg-mist/30 hover:text-ink'
+                        }`}
+                      >
+                        <span className="mr-1.5">{cat.emoji}</span>
+                        <span>{cat.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Service list selector */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-dim uppercase tracking-wider block">{t.selectServiceToStart}</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {LANDING_SERVICES_BY_CAT[selectedInitCategory].services.map(srv => {
+                    const isSelected = selectedInitService === srv.name
+                    return (
+                      <button
+                        key={srv.key}
+                        type="button"
+                        onClick={() => setSelectedInitService(srv.name)}
+                        className={`p-4 rounded-2xl text-left transition-all border text-xs font-medium cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-fire/5 border-fire text-fire shadow-md shadow-fire/5'
+                            : 'bg-white border-line hover:border-line2 text-ink'
+                        }`}
+                      >
+                        <span>{srv.name}</span>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-fire text-white flex items-center justify-center flex-shrink-0 animate-scale-up">
+                            <Check className="w-3 h-3" />
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Notes input */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-dim uppercase tracking-wider block">
+                  {lang === 'en' ? 'Notes / Requirements (Optional)' : 'टिप्पणियां / आवश्यकताएं (वैकल्पिक)'}
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={t.requirementsPlaceholder}
+                  value={customInitNotes}
+                  onChange={(e) => setCustomInitNotes(e.target.value)}
+                  className="w-full text-xs font-medium bg-white border border-line rounded-xl p-3 text-ink outline-none focus:border-fire transition-all resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-4 border-t border-line flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInitiateModal(false)
+                  setSelectedInitService('')
+                  setCustomInitNotes('')
+                }}
+                disabled={initiatingService}
+                className="flex-1 py-2.5 border border-line hover:border-rose hover:text-rose text-xs font-semibold rounded-xl transition-all cursor-pointer text-center bg-white disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleInitiateService}
+                disabled={initiatingService || !selectedInitService}
+                className="flex-1 py-2.5 bg-gradient-to-r from-fire to-fire2 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {initiatingService ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>{t.initiating}</span>
+                  </>
+                ) : (
+                  <span>{lang === 'en' ? 'Initiate Service' : 'सेवा शुरू करें'}</span>
+                )}
               </button>
             </div>
           </div>
