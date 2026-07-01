@@ -30,6 +30,7 @@ interface Service {
 
 interface DocumentItem {
   id: string
+  service_id: string | null
   file_name: string
   storage_path: string
   doc_type: string
@@ -105,6 +106,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   // Admin Direct Upload state
   const [uploading, setUploading] = useState(false)
   const [uploadingCol, setUploadingCol] = useState<string | null>(null)
+  const [serviceUploadDocType, setServiceUploadDocType] = useState<{[serviceId: string]: string}>({})
+  const [customDocTypeInput, setCustomDocTypeInput] = useState<{[serviceId: string]: string}>({})
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({})
   const [replySubmittingId, setReplySubmittingId] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -323,11 +326,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   }
 
   // 6. Direct Admin Upload
-  const handleAdminUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string = 'OTHER') => {
+  const handleAdminUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string = 'OTHER', serviceId: string | null = null) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setUploadingCol(docType)
+    setUploadingCol(serviceId || docType)
     setActionError(null)
 
     try {
@@ -345,6 +348,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         .from('documents')
         .insert({
           client_id: id,
+          service_id: serviceId,
           file_name: file.name,
           storage_path: storagePath,
           doc_type: docType,
@@ -781,16 +785,88 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                       required
                       value={serviceName}
                       onChange={(e) => setServiceName(e.target.value)}
-                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink text-xs focus:outline-none"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink text-xs focus:outline-none cursor-pointer"
                     >
                       <option value="">-- Select Template Service --</option>
-                      <option value="Pvt Ltd Company Registration">Pvt Ltd Company Registration</option>
-                      <option value="LLP Registration India">LLP Registration India</option>
-                      <option value="GST Registration &amp; Onboarding">GST Registration &amp; Onboarding</option>
-                      <option value="GST Quarterly Filing">GST Quarterly Filing</option>
-                      <option value="Income Tax Return Filing">Income Tax Return Filing</option>
-                      <option value="Trademark Filing">Trademark Filing</option>
-                      <option value="ROC Compliance Package">ROC Compliance Package</option>
+                      <optgroup label="🚀 Startup India">
+                        <option value="Startup India Registration">Startup India Registration</option>
+                        <option value="80-IAC Tax Exemption">80-IAC Tax Exemption</option>
+                        <option value="Private Limited Company Registration">Private Limited Company Registration</option>
+                        <option value="One Person Company (OPC)">One Person Company (OPC)</option>
+                        <option value="MSME / Udyam Registration">MSME / Udyam Registration</option>
+                        <option value="Trademark Registration">Trademark Registration</option>
+                      </optgroup>
+                      <optgroup label="🏢 Business Registration">
+                        <option value="Private Limited Company Registration">Private Limited Company Registration</option>
+                        <option value="LLP Registration">LLP Registration</option>
+                        <option value="One Person Company (OPC)">One Person Company (OPC)</option>
+                        <option value="Partnership Firm Registration">Partnership Firm Registration</option>
+                        <option value="Sole Proprietorship Registration">Sole Proprietorship Registration</option>
+                        <option value="Section 8 Company / NGO">Section 8 Company / NGO</option>
+                        <option value="Trust Registration">Trust Registration</option>
+                        <option value="Society Registration">Society Registration</option>
+                        <option value="Indian Subsidiary Registration">Indian Subsidiary Registration</option>
+                        <option value="Digital Signature (DSC)">Digital Signature (DSC)</option>
+                        <option value="MSME / Udyam Registration">MSME / Udyam Registration</option>
+                        <option value="IEC / Import Export Code">IEC / Import Export Code</option>
+                        <option value="Barcode Registration">Barcode Registration</option>
+                        <option value="Virtual Office for Registration">Virtual Office for Registration</option>
+                      </optgroup>
+                      <optgroup label="📊 GST &amp; Tax">
+                        <option value="GST Registration">GST Registration</option>
+                        <option value="GST Return Filing">GST Return Filing</option>
+                        <option value="GSTR-9 Annual Return">GSTR-9 Annual Return</option>
+                        <option value="GST Cancellation / Surrender">GST Cancellation / Surrender</option>
+                        <option value="GST E-Invoice Setup">GST E-Invoice Setup</option>
+                        <option value="E-Way Bill Registration">E-Way Bill Registration</option>
+                        <option value="Income Tax Return (ITR) Filing">Income Tax Return (ITR) Filing</option>
+                        <option value="TDS Return Filing">TDS Return Filing</option>
+                        <option value="PF Return Filing">PF Return Filing</option>
+                        <option value="Input Tax Credit (ITC) Claim">Input Tax Credit (ITC) Claim</option>
+                      </optgroup>
+                      <optgroup label="📋 Compliance &amp; MCA">
+                        <option value="Annual Compliance – Private Limited">Annual Compliance – Private Limited</option>
+                        <option value="Annual Compliance – LLP">Annual Compliance – LLP</option>
+                        <option value="Bookkeeping &amp; Accounting">Bookkeeping &amp; Accounting</option>
+                        <option value="Director KYC (DIR-3 KYC)">Director KYC (DIR-3 KYC)</option>
+                        <option value="Change Company Name">Change Company Name</option>
+                        <option value="Change Registered Office">Change Registered Office</option>
+                        <option value="Issue / Transfer of Shares">Issue / Transfer of Shares</option>
+                        <option value="Company Winding Up / Strike Off">Company Winding Up / Strike Off</option>
+                        <option value="12A &amp; 80G Registration">12A &amp; 80G Registration</option>
+                        <option value="FCRA Registration">FCRA Registration</option>
+                      </optgroup>
+                      <optgroup label="™️ Trademark &amp; IPR">
+                        <option value="Trademark Registration">Trademark Registration</option>
+                        <option value="Trademark Renewal">Trademark Renewal</option>
+                        <option value="Trademark Objection Reply">Trademark Objection Reply</option>
+                        <option value="International Trademark (Madrid)">International Trademark (Madrid)</option>
+                        <option value="Copyright Registration">Copyright Registration</option>
+                        <option value="Patent Registration">Patent Registration</option>
+                        <option value="Design Registration">Design Registration</option>
+                        <option value="IP Dispute Resolution">IP Dispute Resolution</option>
+                      </optgroup>
+                      <optgroup label="🏛️ Licenses">
+                        <option value="FSSAI Food License">FSSAI Food License</option>
+                        <option value="Drug License">Drug License</option>
+                        <option value="ISO Certification">ISO Certification</option>
+                        <option value="AYUSH License">AYUSH License</option>
+                        <option value="Factory License">Factory License</option>
+                        <option value="Shop &amp; Establishment License">Shop &amp; Establishment License</option>
+                        <option value="RERA Registration">RERA Registration</option>
+                        <option value="BIS Certification">BIS Certification</option>
+                        <option value="Medical Device Registration">Medical Device Registration</option>
+                        <option value="APEDA Registration">APEDA Registration</option>
+                      </optgroup>
+                      <optgroup label="🌍 International">
+                        <option value="Company Registration in UAE / Dubai">Company Registration in UAE / Dubai</option>
+                        <option value="Company Registration in UK">Company Registration in UK</option>
+                        <option value="Company Registration in USA">Company Registration in USA</option>
+                        <option value="Company Registration in Singapore">Company Registration in Singapore</option>
+                        <option value="Company Registration in Canada">Company Registration in Canada</option>
+                        <option value="Company Registration in Australia">Company Registration in Australia</option>
+                        <option value="Dubai Free Zone Setup">Dubai Free Zone Setup</option>
+                      </optgroup>
                     </select>
                   </div>
 
@@ -954,6 +1030,134 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                             <p>{service.notes}</p>
                           </div>
                         )}
+
+                        {/* Service Documents Upload & List (Admin view) */}
+                        <div className="mt-6 pt-6 border-t border-line space-y-4 text-xs">
+                          <h4 className="font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-fire" />
+                            Uploaded Documents
+                          </h4>
+
+                          {/* Documents List */}
+                          {(() => {
+                            const serviceDocs = documents.filter(d => d.service_id === service.id)
+                            if (serviceDocs.length === 0) {
+                              return (
+                                <p className="text-dim italic pl-1">No documents uploaded for this service yet.</p>
+                              )
+                            }
+                            return (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {serviceDocs.map(doc => (
+                                  <div key={doc.id} className="p-3 bg-pearl border border-line rounded-xl flex items-center justify-between hover:border-line2 transition-all">
+                                    <div className="min-w-0 pr-2">
+                                      <span className="font-bold text-ink block truncate" title={doc.file_name}>{doc.file_name}</span>
+                                      <span className="text-[10px] text-dim block mt-0.5">
+                                        Type: <strong>{doc.doc_type || 'General'}</strong> &bull; {new Date(doc.created_at).toLocaleDateString('en-IN')}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                        doc.status === 'verified' ? 'bg-jade/10 text-jade' :
+                                        doc.status === 'submitted' ? 'bg-sky/10 text-sky' :
+                                        'bg-gold/10 text-gold'
+                                      }`}>
+                                        {doc.status}
+                                      </span>
+                                      <button
+                                        onClick={() => handleDownload(doc.storage_path, doc.file_name)}
+                                        className="p-1.5 hover:bg-mist rounded-lg border border-line text-dim hover:text-ink transition-all cursor-pointer animate-fade-in"
+                                        title="Download"
+                                      >
+                                        <Download className="w-3.5 h-3.5" />
+                                      </button>
+                                      {doc.status !== 'verified' && (
+                                        <button
+                                          onClick={() => handleVerifyDoc(doc.id)}
+                                          className="p-1.5 hover:bg-jade/10 rounded-lg border border-line text-dim hover:text-jade transition-all cursor-pointer"
+                                          title="Verify Document"
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleDeleteDoc(doc.id, doc.storage_path)}
+                                        className="p-1.5 hover:bg-rose/10 rounded-lg border border-line text-dim hover:text-rose transition-all cursor-pointer"
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          })()}
+
+                          {/* Upload Area for Admin */}
+                          <div className="bg-pearl/30 border border-line rounded-xl p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              {/* Document Type Selector */}
+                              <div className="flex-grow">
+                                <label className="text-[10px] font-bold text-dim block mb-1">Select Document Type</label>
+                                <select
+                                  value={serviceUploadDocType[service.id] || 'GST Certificate'}
+                                  onChange={(e) => setServiceUploadDocType(prev => ({ ...prev, [service.id]: e.target.value }))}
+                                  className="w-full text-xs font-medium bg-white border border-line rounded-lg p-2 text-ink outline-none focus:border-fire transition-all cursor-pointer"
+                                >
+                                  <option value="GST Certificate">GST Certificate</option>
+                                  <option value="PAN Card">PAN Card</option>
+                                  <option value="Aadhaar Card">Aadhaar Card</option>
+                                  <option value="Electricity Bill">Electricity Bill (Address Proof)</option>
+                                  <option value="Rent Agreement">Rent Agreement</option>
+                                  <option value="MSME Certificate">MSME / Udyam Certificate</option>
+                                  <option value="FSSAI License">FSSAI License</option>
+                                  <option value="Trademark Certificate">Trademark Certificate</option>
+                                  <option value="CUSTOM">Custom Document Type...</option>
+                                </select>
+                              </div>
+
+                              {/* Custom Type Input if 'CUSTOM' selected */}
+                              {serviceUploadDocType[service.id] === 'CUSTOM' && (
+                                <div className="flex-grow">
+                                  <label className="text-[10px] font-bold text-dim block mb-1">Enter Document Name</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. GST Certificate, Aadhaar Card"
+                                    value={customDocTypeInput[service.id] || ''}
+                                    onChange={(e) => setCustomDocTypeInput(prev => ({ ...prev, [service.id]: e.target.value }))}
+                                    className="w-full text-xs font-medium bg-white border border-line rounded-lg p-2 text-ink outline-none focus:border-fire transition-all"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Direct File Input Selector */}
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-grow">
+                                <label className="relative inline-flex items-center gap-2 px-3 py-2 bg-white border border-line hover:border-fire hover:text-fire text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm">
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>{uploadingCol === service.id ? 'Uploading...' : 'Choose File'}</span>
+                                  <input
+                                    type="file"
+                                    accept=".pdf,image/jpeg,image/png"
+                                    onChange={(e) => {
+                                      const selectedType = serviceUploadDocType[service.id] || 'GST Certificate';
+                                      let finalDocType = selectedType;
+                                      if (selectedType === 'CUSTOM') {
+                                        finalDocType = customDocTypeInput[service.id]?.trim() || 'General Document';
+                                      }
+                                      handleAdminUpload(e, finalDocType, service.id);
+                                    }}
+                                    disabled={uploadingCol === service.id}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                  />
+                                </label>
+                              </div>
+                              <span className="text-[10px] text-dim">PDF, JPG, or PNG (Max 10MB)</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
 
