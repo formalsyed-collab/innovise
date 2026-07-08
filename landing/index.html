@@ -376,6 +376,32 @@
             font-weight: 700
         }
 
+        .topbar-divider {
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 11px;
+            align-self: center;
+        }
+
+        .topbar-socials {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-socials a {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar-socials a:hover {
+            color: var(--gold2);
+            transform: translateY(-1px);
+        }
+
         /* === NAVBAR === */
         #nav {
             position: sticky;
@@ -2735,6 +2761,57 @@
             gap: 18px
         }
 
+        .ft-socials {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .ft-socials a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 50%;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .ft-socials a:hover {
+            background: var(--fire);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .mob-socials {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .mob-socials a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background: var(--pearl2);
+            border-radius: 50%;
+            color: var(--ink);
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .mob-socials a:hover {
+            background: var(--fire);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
         /* === WA FLOAT === */
         .wa-float {
             position: fixed;
@@ -3800,8 +3877,13 @@
                     <a href="tel:+919506166560"><i class="fas fa-phone"></i>+91 95061 66560</a>
                     <a href="mailto:officialtaxinn@gmail.com"><i
                             class="fas fa-envelope"></i>officialtaxinn@gmail.com</a>
-                    <a href="#contact" class="highlight"><i class="fas fa-calendar-check"></i>Book Consultation
-                        Today</a>
+                    <a href="#contact" class="highlight"><i class="fas fa-calendar-check"></i>Book Consultation Today</a>
+                    <span class="topbar-divider">|</span>
+                    <div class="topbar-socials">
+                        <a href="https://www.instagram.com/innovise_consultants/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.facebook.com/profile.php?id=61591300662550" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.linkedin.com/company/innovisesolution/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3863,6 +3945,11 @@
             <a href="tel:+919506166560" class="btn btn-outline"><i class="fas fa-phone"></i>Call Now</a>
             <a href="https://wa.me/919506166560?text=Hello! I need help with your services." class="btn btn-wa"><i
                     class="fab fa-whatsapp"></i>WhatsApp Us</a>
+        </div>
+        <div class="mob-socials">
+            <a href="https://www.instagram.com/innovise_consultants/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61591300662550" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://www.linkedin.com/company/innovisesolution/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
         </div>
     </div>
 
@@ -4845,6 +4932,11 @@
                                 <div class="ft-badge"><i class="fas fa-award"></i>CA Supervised</div>
                                 <div class="ft-badge"><i class="fas fa-award"></i>CS Certified</div>
                                 <div class="ft-badge"><i class="fas fa-shield-alt"></i>Data Secure</div>
+                            </div>
+                            <div class="ft-socials">
+                                <a href="https://www.instagram.com/innovise_consultants/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                                <a href="https://www.facebook.com/profile.php?id=61591300662550" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                                <a href="https://www.linkedin.com/company/innovisesolution/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
                             </div>
                         </div>
                         <div class="ft-col">
