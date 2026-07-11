@@ -16,6 +16,25 @@ const bricolageGrotesque = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: "Innovise Consultant | Secure Client Portal",
   description: "Secure Client Portal for company registration, GST, tax, trademark, and compliance services in Kanpur, India.",
+  keywords: [
+    "CA in Kanpur", "CS in Kanpur", "Company Registration Kanpur", "GST registration Kanpur", 
+    "Tax consultant Civil Lines Kanpur", "Best CA near me Kanpur", "Top CS firm in UP", 
+    "Income tax return filing Kanpur", "Innovise Consultant", "Client Portal"
+  ],
+  authors: [{ name: "Innovise Consultant" }],
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: "https://innovise.in/",
+    title: "Innovise Consultant | Secure Client Portal",
+    description: "Secure Client Portal for company registration, GST, tax, trademark, and compliance services in Kanpur, India.",
+    siteName: "Innovise Consultant",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Innovise Consultant | Client Portal",
+    description: "Secure Client Portal for CA & CS services in Kanpur.",
+  },
 };
 
 export default function RootLayout({

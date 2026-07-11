@@ -286,3 +286,48 @@ create policy "Allow admin delete access to private storage folder"
     bucket_id = 'documents' and 
     public.get_user_role(auth.uid()) = 'admin'
   );
+
+-- =====================================================================
+-- WHATSAPP INTEGRATION TABLES
+-- =====================================================================
+
+-- Enums
+create type public.whatsapp_conversation_status as enum ('bot', 'human_requested', 'human_active');
+create type public.whatsapp_message_sender as enum ('user', 'bot', 'admin');
+
+-- 1. WhatsApp Conversations Table
+create table public.whatsapp_conversations (
+  id uuid default gen_random_uuid() primary key,
+  phone_number text not null unique,
+  profile_id uuid references public.profiles(id) on delete set null,
+  status public.whatsapp_conversation_status not null default 'bot',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS for WhatsApp Conversations
+alter table public.whatsapp_conversations enable row level security;
+
+-- 2. WhatsApp Messages Table
+create table public.whatsapp_messages (
+  id uuid default gen_random_uuid() primary key,
+  conversation_id uuid references public.whatsapp_conversations(id) on delete cascade not null,
+  sender public.whatsapp_message_sender not null,
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS for WhatsApp Messages
+alter table public.whatsapp_messages enable row level security;
+
+-- --- WhatsApp Conversations Policies ---
+create policy "Allow admin all access on whatsapp_conversations"
+  on public.whatsapp_conversations for all
+  to authenticated
+  using (public.get_user_role(auth.uid()) = 'admin');
+
+-- --- WhatsApp Messages Policies ---
+create policy "Allow admin all access on whatsapp_messages"
+  on public.whatsapp_messages for all
+  to authenticated
+  using (public.get_user_role(auth.uid()) = 'admin');
