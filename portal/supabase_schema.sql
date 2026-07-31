@@ -6,11 +6,12 @@
 create extension if not exists "uuid-ossp";
 
 -- Define Enums
-create type public.user_role as enum ('client', 'admin');
+create type public.user_role as enum ('client', 'admin', 'agent');
 create type public.service_status as enum ('consultation', 'docs_pending', 'in_progress', 'filed', 'completed');
 create type public.doc_status as enum ('submitted', 'verified', 'pending');
 create type public.doc_uploader as enum ('client', 'admin');
 create type public.invoice_status as enum ('paid', 'pending', 'partial');
+create type public.commission_status as enum ('pending', 'paid');
 
 -- 1. Profiles Table
 create table public.profiles (
@@ -19,6 +20,8 @@ create table public.profiles (
   email text unique,
   phone text,
   address text,
+  bank_details jsonb,
+  referred_by uuid references public.profiles(id) on delete set null,
   role public.user_role not null default 'client',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -89,6 +92,21 @@ create table public.invoices (
 -- Enable RLS for Invoices
 alter table public.invoices enable row level security;
 
+-- 6. Commissions Table
+create table public.commissions (
+  id uuid default gen_random_uuid() primary key,
+  agent_id uuid references public.profiles(id) on delete cascade not null,
+  invoice_id uuid references public.invoices(id) on delete cascade not null,
+  client_id uuid references public.profiles(id) on delete cascade not null,
+  amount numeric(12, 2) not null default 0.00,
+  status public.commission_status not null default 'pending',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(invoice_id)
+);
+
+-- Enable RLS for Commissions
+alter table public.commissions enable row level security;
+
 
 -- =====================================================================
 -- FUNCTIONS AND TRIGGERS (SECURITY DEFINER PATTERNS)
@@ -108,15 +126,24 @@ $$ language plpgsql security definer;
 -- Trigger to automatically create a profile after signup
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  requested_role public.user_role;
 begin
-  insert into public.profiles (id, full_name, email, phone, address, role)
+  -- Determine role, restrict admin escalation via metadata
+  requested_role := coalesce((new.raw_user_meta_data->>'role')::public.user_role, 'client'::public.user_role);
+  if requested_role = 'admin' then
+    requested_role := 'client'; -- Admins must be elevated via SQL manually
+  end if;
+
+  insert into public.profiles (id, full_name, email, phone, address, bank_details, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', 'Client Name'),
     new.email,
     coalesce(new.phone, new.raw_user_meta_data->>'phone', ''),
     coalesce(new.raw_user_meta_data->>'address', ''),
-    'client'::public.user_role -- Force role to client for security (admins are elevated via SQL)
+    (new.raw_user_meta_data->>'bank_details')::jsonb,
+    requested_role
   );
   return new;
 end;
@@ -127,6 +154,39 @@ create or replace trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Trigger to auto-calculate commissions on invoice creation/update
+create or replace function public.calculate_invoice_commission()
+returns trigger as $$
+declare
+  agent uuid;
+  commission_amt numeric(12, 2);
+begin
+  -- Check if the client was referred by an agent
+  select referred_by into agent from public.profiles where id = new.client_id;
+  
+  -- If there is a referring agent
+  if agent is not null then
+    -- Calculate 30% of professional fees
+    commission_amt := new.professional_fees * 0.30;
+    
+    -- Insert or update commission record
+    insert into public.commissions (agent_id, invoice_id, client_id, amount)
+    values (agent, new.id, new.client_id, commission_amt)
+    on conflict (invoice_id) 
+    do update set amount = excluded.amount;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Bind the commission trigger to invoices table
+drop trigger if exists on_invoice_change on public.invoices;
+create trigger on_invoice_change
+  after insert or update of professional_fees on public.invoices
+  for each row
+  execute function public.calculate_invoice_commission();
+
 
 -- =====================================================================
 -- ROW LEVEL SECURITY POLICIES
@@ -136,7 +196,7 @@ create or replace trigger on_auth_user_created
 create policy "Allow select profiles for owner or admin"
   on public.profiles for select
   to authenticated
-  using (id = auth.uid() or public.get_user_role(auth.uid()) = 'admin');
+  using (id = auth.uid() or public.get_user_role(auth.uid()) = 'admin' or referred_by = auth.uid());
 
 create policy "Allow admin to insert profiles"
   on public.profiles for insert
@@ -159,10 +219,14 @@ create policy "Allow admin to delete profiles"
 
 
 -- --- Services Policies ---
-create policy "Allow select services for owner or admin"
+create policy "Allow select services for owner or admin or referring agent"
   on public.services for select
   to authenticated
-  using (client_id = auth.uid() or public.get_user_role(auth.uid()) = 'admin');
+  using (
+    client_id = auth.uid() or 
+    public.get_user_role(auth.uid()) = 'admin' or
+    client_id in (select id from public.profiles where referred_by = auth.uid())
+  );
 
 create policy "Allow admin all access on services"
   on public.services for all
@@ -212,13 +276,34 @@ create policy "Allow admin all access on document_requests"
 
 
 -- --- Invoices Policies ---
-create policy "Allow select invoices for owner or admin"
+create policy "Allow select invoices for owner or admin or referring agent"
   on public.invoices for select
   to authenticated
-  using (client_id = auth.uid() or public.get_user_role(auth.uid()) = 'admin');
+  using (
+    client_id = auth.uid() or 
+    public.get_user_role(auth.uid()) = 'admin' or
+    client_id in (select id from public.profiles where referred_by = auth.uid())
+  );
 
 create policy "Allow admin all access on invoices"
   on public.invoices for all
+  to authenticated
+  using (public.get_user_role(auth.uid()) = 'admin');
+
+
+-- --- Commissions Policies ---
+create policy "Allow select commissions for agent or admin"
+  on public.commissions for select
+  to authenticated
+  using (agent_id = auth.uid() or public.get_user_role(auth.uid()) = 'admin');
+
+create policy "Allow admin to update commissions"
+  on public.commissions for update
+  to authenticated
+  using (public.get_user_role(auth.uid()) = 'admin');
+
+create policy "Allow admin all access on commissions"
+  on public.commissions for all
   to authenticated
   using (public.get_user_role(auth.uid()) = 'admin');
 

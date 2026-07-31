@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthPage = path === '/login' || path === '/forgot-password' || path === '/reset-password'
+  const isAuthPage = path === '/login' || path === '/forgot-password' || path === '/reset-password' || path.startsWith('/agent/login') || path.startsWith('/agent/register')
 
   if (!user && !isAuthPage && path !== '/') {
     // User is not logged in, redirect to login
