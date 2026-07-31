@@ -45,10 +45,22 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthPage = path === '/login' || path === '/forgot-password' || path === '/reset-password' || path.startsWith('/agent/login') || path.startsWith('/agent/register')
 
-  if (!user && !isAuthPage && path !== '/') {
-    // User is not logged in, redirect to login
+  // Redirect to the appropriate login page based on the requested path
+  if (
+    !user &&
+    !isAuthPage &&
+    path !== '/' &&
+    !path.startsWith('/auth')
+  ) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    
+    // If they were trying to access an agent route, redirect to agent login
+    if (path.startsWith('/agent')) {
+      url.pathname = '/agent/login'
+    } else {
+      url.pathname = '/login'
+    }
+    
     return NextResponse.redirect(url)
   }
 
