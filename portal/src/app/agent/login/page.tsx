@@ -92,15 +92,22 @@ export default function AgentLoginPage() {
         throw signInError
       }
 
+      const { data: { user } } = await supabase.auth.getUser()
+      
       // Verify if the user is actually an agent
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .single()
-        
-      if (profile?.role !== 'agent' && profile?.role !== 'admin') {
-        await supabase.auth.signOut()
-        throw new Error("You do not have agent access privileges.")
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+          
+        if (profile?.role !== 'agent' && profile?.role !== 'admin') {
+          await supabase.auth.signOut()
+          throw new Error("You do not have agent access privileges.")
+        }
+      } else {
+        throw new Error("Failed to authenticate user.")
       }
 
       router.push('/agent/dashboard')
