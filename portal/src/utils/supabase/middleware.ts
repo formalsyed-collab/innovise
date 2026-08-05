@@ -77,20 +77,34 @@ export async function updateSession(request: NextRequest) {
     // Redirect logged-in users from root or auth pages to their dashboards
     if (path === '/' || isAuthPage) {
       const url = request.nextUrl.clone()
-      url.pathname = role === 'admin' ? '/admin' : '/dashboard'
+      if (role === 'admin') url.pathname = '/admin'
+      else if (role === 'agent') url.pathname = '/agent/dashboard'
+      else url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
 
     // Role boundary checks
     if (path.startsWith('/admin') && role !== 'admin') {
       const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
+      url.pathname = role === 'agent' ? '/agent/dashboard' : '/dashboard'
       return NextResponse.redirect(url)
     }
 
     if (path.startsWith('/dashboard') && role === 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/admin'
+      return NextResponse.redirect(url)
+    }
+    
+    if (path.startsWith('/dashboard') && role === 'agent') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/agent/dashboard'
+      return NextResponse.redirect(url)
+    }
+    
+    if (path.startsWith('/agent/dashboard') && role !== 'agent' && role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
   }
