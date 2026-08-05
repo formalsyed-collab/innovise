@@ -12,6 +12,17 @@ const normalizePhone = (phone: string) => {
 
 const getAuthEmail = (identifier: string) => {
   const normalized = normalizePhone(identifier)
+  
+  // Admin phone number mappings
+  if (normalized === '+919506166560' || normalized === '9506166560' || normalized === '919506166560') {
+    return 'officialtaxinn@gmail.com'
+  }
+
+  // If it's already an email, return it
+  if (identifier.includes('@')) {
+    return identifier.trim()
+  }
+
   return `phone_${normalized}@innovise.local`
 }
 
@@ -31,14 +42,55 @@ export default function AgentLoginPage() {
     setError(null)
 
     try {
-      const authEmail = getAuthEmail(phone)
+      let signInError = null;
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password,
-      })
+      // Admin phone number mappings
+      const normalized = normalizePhone(phone);
+      if (normalized === '+919506166560' || normalized === '9506166560' || normalized === '919506166560') {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: 'officialtaxinn@gmail.com',
+          password,
+        })
+        signInError = error;
+      } else if (phone.includes('@')) {
+        // If it's already an email, use email auth
+        const { error } = await supabase.auth.signInWithPassword({
+          email: phone.trim(),
+          password,
+        })
+        signInError = error;
+      } else {
+        // Try virtual email first
+        const authEmail = `phone_${normalized}@innovise.local`
+        const { error: virtualEmailError } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password,
+        })
 
-      if (signInError) throw signInError
+        if (virtualEmailError) {
+          // If virtual email fails, try actual phone identity
+          // Ensure phone has country code for Supabase phone auth
+          const phoneIdentity = normalized.startsWith('+') ? normalized : `+91${normalized}`;
+          const { error: phoneAuthError } = await supabase.auth.signInWithPassword({
+            phone: phoneIdentity,
+            password,
+          })
+          
+          if (phoneAuthError) {
+             // As a last resort, try without +91 if they registered without it
+             const { error: fallbackPhoneError } = await supabase.auth.signInWithPassword({
+               phone: normalized,
+               password,
+             })
+             signInError = fallbackPhoneError;
+          }
+        }
+      }
+
+      if (signInError) {
+        console.error('Sign in error:', signInError)
+        throw signInError
+      }
 
       // Verify if the user is actually an agent
       const { data: profile } = await supabase
@@ -71,7 +123,7 @@ export default function AgentLoginPage() {
             <img src="/logo.png" alt="Innovise Logo" className="w-10 h-10 object-contain" />
           </div>
           <h2 className="mt-2 text-center text-3xl font-extrabold text-white tracking-tight">
-            Agent Partner Login
+            Agent Partner Login (v2)
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
             Access your commissions and track client progress.
@@ -88,8 +140,8 @@ export default function AgentLoginPage() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Mobile Number</label>
-              <input type="tel" required placeholder="+91..." value={phone} onChange={e => setPhone(e.target.value)} className="block w-full px-4 py-3 bg-ink/75 border border-white/15 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-sm" />
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Email or Mobile Number</label>
+              <input type="text" required placeholder="agent@email.com or +91..." value={phone} onChange={e => setPhone(e.target.value)} className="block w-full px-4 py-3 bg-ink/75 border border-white/15 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-sm" />
             </div>
 
             <div>
