@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
+import { createClient, setSessionInitialized } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
+import { lookupEmailByPhone } from './actions'
 
 const normalizePhone = (phone: string) => {
   return phone.replace(/[^\d+]/g, '')
@@ -44,46 +45,33 @@ export default function AgentLoginPage() {
     try {
       let signInError = null;
 
-      // Admin phone number mappings
-      const normalized = normalizePhone(phone);
-      if (normalized === '+919506166560' || normalized === '9506166560' || normalized === '919506166560') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: 'officialtaxinn@gmail.com',
-          password,
-        })
-        signInError = error;
-      } else if (phone.includes('@')) {
-        // If it's already an email, use email auth
+      // Check if phone string includes @, indicating an email
+      if (phone.includes('@')) {
         const { error } = await supabase.auth.signInWithPassword({
           email: phone.trim(),
           password,
         })
         signInError = error;
       } else {
-        // Try virtual email first
-        const authEmail = `phone_${normalized}@innovise.local`
-        const { error: virtualEmailError } = await supabase.auth.signInWithPassword({
-          email: authEmail,
-          password,
-        })
+        // If it's a mobile number, lookup the email in profiles
+        const normalizedPhone = normalizePhone(phone);
+        const resolvedEmail = await lookupEmailByPhone(normalizedPhone);
 
-        if (virtualEmailError) {
-          // If virtual email fails, try actual phone identity
-          // Ensure phone has country code for Supabase phone auth
-          const phoneIdentity = normalized.startsWith('+') ? normalized : `+91${normalized}`;
-          const { error: phoneAuthError } = await supabase.auth.signInWithPassword({
-            phone: phoneIdentity,
+        if (resolvedEmail) {
+          // If we found their email, login using the email
+          const { error } = await supabase.auth.signInWithPassword({
+            email: resolvedEmail,
             password,
           })
-          
-          if (phoneAuthError) {
-             // As a last resort, try without +91 if they registered without it
-             const { error: fallbackPhoneError } = await supabase.auth.signInWithPassword({
-               phone: normalized,
-               password,
-             })
-             signInError = fallbackPhoneError;
-          }
+          signInError = error;
+        } else {
+          // If email not found, attempt to use virtual email fallback or fail
+          const authEmail = `phone_${normalizedPhone}@innovise.local`
+          const { error } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password,
+          })
+          signInError = error;
         }
       }
 
@@ -110,6 +98,7 @@ export default function AgentLoginPage() {
         throw new Error("Failed to authenticate user.")
       }
 
+      setSessionInitialized(true)
       router.push('/agent/dashboard')
 
     } catch (err: any) {
