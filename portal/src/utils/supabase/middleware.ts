@@ -87,19 +87,6 @@ export async function updateSession(request: NextRequest) {
 
     const role = profile?.role || user.user_metadata?.role
 
-    try {
-      const fs = require('fs')
-      fs.appendFileSync('middleware.log', JSON.stringify({
-        timestamp: new Date().toISOString(),
-        path,
-        userId: user.id,
-        profileRole: profile?.role,
-        metaRole: user.user_metadata?.role,
-        finalRole: role,
-        error: profileError
-      }) + '\n')
-    } catch(e) {}
-
     if (path === '/' || isAuthPage) {
       const url = request.nextUrl.clone()
       if (role === 'admin') url.pathname = '/admin'
