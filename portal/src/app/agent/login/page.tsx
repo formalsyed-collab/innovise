@@ -53,25 +53,36 @@ export default function AgentLoginPage() {
         })
         signInError = error;
       } else {
-        // If it's a mobile number, lookup the email in profiles
-        const normalizedPhone = normalizePhone(phone);
-        const resolvedEmail = await lookupEmailByPhone(normalizedPhone);
+        // First try the hardcoded admin overrides and standard virtual email
+        let authEmail = getAuthEmail(phone);
+        let { error: authErr } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password,
+        })
+        signInError = authErr;
 
-        if (resolvedEmail) {
-          // If we found their email, login using the email
-          const { error } = await supabase.auth.signInWithPassword({
-            email: resolvedEmail,
+        // If the first virtual email attempt fails, try adding +91 (if they registered with country code)
+        if (signInError && !authEmail.includes('@gmail') && !phone.startsWith('+')) {
+          const authEmailPlus = `phone_+91${normalizePhone(phone)}@innovise.local`;
+          const { error: plusErr } = await supabase.auth.signInWithPassword({
+            email: authEmailPlus,
             password,
           })
-          signInError = error;
-        } else {
-          // If email not found, attempt to use virtual email fallback or fail
-          const authEmail = `phone_${normalizedPhone}@innovise.local`
-          const { error } = await supabase.auth.signInWithPassword({
-            email: authEmail,
-            password,
-          })
-          signInError = error;
+          signInError = plusErr;
+        }
+
+        // If that still fails, fall back to the Server Action DB lookup (in case they have a custom email)
+        if (signInError) {
+          const normalizedPhone = normalizePhone(phone);
+          const resolvedEmail = await lookupEmailByPhone(normalizedPhone).catch(() => null);
+
+          if (resolvedEmail && resolvedEmail !== authEmail) {
+            const { error: dbErr } = await supabase.auth.signInWithPassword({
+              email: resolvedEmail,
+              password,
+            })
+            signInError = dbErr;
+          }
         }
       }
 
