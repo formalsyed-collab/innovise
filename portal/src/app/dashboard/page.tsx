@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient, isSessionInitialized } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { 
   User, Mail, Phone, MapPin, Key, LogOut, CheckCircle2, 
@@ -690,15 +690,6 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (!isSessionInitialized()) {
-      const cleanSignOut = async () => {
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/login')
-      }
-      cleanSignOut()
-      return
-    }
     fetchData()
 
     // Listen to PayU redirect query parameters

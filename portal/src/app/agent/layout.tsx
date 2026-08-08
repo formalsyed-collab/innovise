@@ -14,28 +14,8 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    // Exclude auth routes
-    if (pathname.includes('/login') || pathname.includes('/register')) {
-      setIsChecking(false)
-      return
-    }
-
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/agent/login')
-        return
-      }
-
-      const { data: profile } = await supabase.from('profiles').select('role').single()
-      if (profile?.role !== 'agent' && profile?.role !== 'admin') {
-        router.push('/agent/login')
-        return
-      }
-      setIsChecking(false)
-    }
-
-    checkAuth()
+    // Rely on middleware.ts for authentication and role protection
+    setIsChecking(false)
   }, [pathname])
 
   if (pathname.includes('/login') || pathname.includes('/register')) {

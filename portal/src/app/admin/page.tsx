@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient, isSessionInitialized } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { 
   Users, UserPlus, Search, Mail, Phone, MapPin, 
@@ -73,15 +73,6 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (!isSessionInitialized()) {
-      const cleanSignOut = async () => {
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/login')
-      }
-      cleanSignOut()
-      return
-    }
     Promise.all([fetchAdminSession(), fetchClients()])
   }, [])
 

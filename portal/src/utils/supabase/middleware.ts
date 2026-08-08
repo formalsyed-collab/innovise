@@ -6,6 +6,9 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Keep track of the cookies that Supabase wants to set
+  const cookiesToSet: { name: string; value: string; options: any }[] = []
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -14,11 +17,16 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+        setAll(cookies) {
+          cookies.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            cookiesToSet.push({ name, value, options })
+          })
+          
           supabaseResponse = NextResponse.next({
             request,
           })
+          
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -29,7 +37,6 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  // Do not run middleware on static files or API routes
   if (
     path.startsWith('/_next') ||
     path.startsWith('/api') ||
@@ -38,14 +45,22 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Refresh session if expired
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   const isAuthPage = path === '/login' || path === '/forgot-password' || path === '/reset-password' || path.startsWith('/agent/login') || path.startsWith('/agent/register')
 
-  // Redirect to the appropriate login page based on the requested path
+  // Helper function to redirect while preserving the exact cookie options
+  const redirectWithCookies = (url: URL) => {
+    const redirectRes = NextResponse.redirect(url)
+    // Only apply the cookies that Supabase explicitly refreshed or set, with their original options (path, maxAge, etc)
+    cookiesToSet.forEach(({ name, value, options }) => {
+      redirectRes.cookies.set(name, value, options)
+    })
+    return redirectRes
+  }
+
   if (
     !user &&
     !isAuthPage &&
@@ -54,58 +69,62 @@ export async function updateSession(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone()
     
-    // If they were trying to access an agent route, redirect to agent login
     if (path.startsWith('/agent')) {
       url.pathname = '/agent/login'
     } else {
       url.pathname = '/login'
     }
     
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url)
   }
 
   if (user) {
-    // Fetch profile to check role
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    const role = profile?.role
+    const role = profile?.role || user.user_metadata?.role
 
-    // Redirect logged-in users from root or auth pages to their dashboards
+    try {
+      const fs = require('fs')
+      fs.appendFileSync('middleware.log', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        path,
+        userId: user.id,
+        profileRole: profile?.role,
+        metaRole: user.user_metadata?.role,
+        finalRole: role,
+        error: profileError
+      }) + '\n')
+    } catch(e) {}
+
     if (path === '/' || isAuthPage) {
       const url = request.nextUrl.clone()
       if (role === 'admin') url.pathname = '/admin'
       else if (role === 'agent') url.pathname = '/agent/dashboard'
+      else if (path.startsWith('/agent')) url.pathname = '/agent/dashboard'
       else url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url)
     }
 
-    // Role boundary checks
     if (path.startsWith('/admin') && role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = role === 'agent' ? '/agent/dashboard' : '/dashboard'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url)
     }
 
     if (path.startsWith('/dashboard') && role === 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/admin'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url)
     }
     
     if (path.startsWith('/dashboard') && role === 'agent') {
       const url = request.nextUrl.clone()
       url.pathname = '/agent/dashboard'
-      return NextResponse.redirect(url)
-    }
-    
-    if (path.startsWith('/agent/dashboard') && role !== 'agent' && role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url)
     }
   }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { use, useState, useEffect } from 'react'
-import { createClient, isSessionInitialized } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, Award, 
@@ -172,15 +172,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   }
 
   useEffect(() => {
-    if (!isSessionInitialized()) {
-      const cleanSignOut = async () => {
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/login')
-      }
-      cleanSignOut()
-      return
-    }
     loadData()
   }, [id])
 

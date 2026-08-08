@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { createClient, isSessionInitialized } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { MessageCircle, Search, User, Send, CheckCircle, Clock, RefreshCw, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -71,7 +71,6 @@ export default function MessagesAdmin() {
   }
 
   const checkAuthAndFetch = async () => {
-    if (!isSessionInitialized()) return;
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')

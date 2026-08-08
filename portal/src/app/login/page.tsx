@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient, setSessionInitialized } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, Mail, ShieldAlert, Award, User, Phone, MapPin, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
@@ -172,9 +172,6 @@ export default function LoginPage() {
           setLoading(false)
           return
         }
-
-        // Set session as initialized for this tab session
-        setSessionInitialized(true)
 
         // Router refresh triggers middleware execution to redirect to dashboard/admin
         router.refresh()

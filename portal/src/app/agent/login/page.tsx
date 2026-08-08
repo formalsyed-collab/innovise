@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient, setSessionInitialized } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
 import { lookupEmailByPhone } from './actions'
@@ -94,11 +94,17 @@ export default function AgentLoginPage() {
           await supabase.auth.signOut()
           throw new Error("You do not have agent access privileges.")
         }
+
+        // Sync user_metadata role if it's out of sync
+        if (user.user_metadata?.role !== profile?.role) {
+          await supabase.auth.updateUser({
+            data: { role: profile?.role }
+          })
+        }
       } else {
         throw new Error("Failed to authenticate user.")
       }
 
-      setSessionInitialized(true)
       router.push('/agent/dashboard')
 
     } catch (err: any) {

@@ -56,9 +56,7 @@ export default function AgentRegisterPage() {
       if (signUpError) throw signUpError
 
       setSuccess(true)
-      setTimeout(() => {
-        router.push('/agent/dashboard')
-      }, 2000)
+      router.push('/agent/dashboard')
 
     } catch (err: any) {
       setError(err.message || 'Failed to register as agent')
