@@ -291,7 +291,16 @@ export default function AgentDashboard() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Service Requested *</label>
-                      <input type="text" placeholder="e.g. GST Registration" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} className="block w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire focus:bg-white/10 transition-all text-sm" />
+                      <select value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} className="block w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire focus:bg-white/10 transition-all text-sm">
+                        <option value="" disabled className="text-gray-900">Select a service...</option>
+                        <option value="Income Tax Return (ITR)" className="text-gray-900">Income Tax Return (ITR)</option>
+                        <option value="GST Registration & Filing" className="text-gray-900">GST Registration & Filing</option>
+                        <option value="Company Incorporation" className="text-gray-900">Company Incorporation</option>
+                        <option value="Trademark Registration" className="text-gray-900">Trademark Registration</option>
+                        <option value="Accounting & Bookkeeping" className="text-gray-900">Accounting & Bookkeeping</option>
+                        <option value="FSSAI / Food License" className="text-gray-900">FSSAI / Food License</option>
+                        <option value="Other" className="text-gray-900">Other</option>
+                      </select>
                     </div>
                   </div>
                 </div>
