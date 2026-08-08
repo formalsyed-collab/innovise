@@ -283,15 +283,15 @@ export default function AgentDashboard() {
                   <div className="space-y-5">
                     <div>
                       <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Full Name *</label>
-                      <input type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="block w-full px-4 py-3 bg-ink/75 border border-white/15 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-sm" />
+                      <input type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="block w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire focus:bg-white/10 transition-all text-sm" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Mobile Number (Format: +91...) *</label>
-                      <input type="tel" placeholder="+91..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="block w-full px-4 py-3 bg-ink/75 border border-white/15 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-sm" />
+                      <input type="tel" placeholder="+91..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="block w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire focus:bg-white/10 transition-all text-sm" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Service Requested *</label>
-                      <input type="text" placeholder="e.g. GST Registration" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} className="block w-full px-4 py-3 bg-ink/75 border border-white/15 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-sm" />
+                      <input type="text" placeholder="e.g. GST Registration" value={formData.service} onChange={e => setFormData({...formData, service: e.target.value})} className="block w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire focus:bg-white/10 transition-all text-sm" />
                     </div>
                   </div>
                 </div>
