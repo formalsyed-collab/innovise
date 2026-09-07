@@ -351,7 +351,7 @@ export default function AdminPage() {
                       required
                       value={newPhone}
                       onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="e.g. +91 9506166560"
+                      placeholder="e.g. +91 8052566560"
                       className="block w-full px-3 py-2 bg-pearl border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-xs font-semibold"
                     />
                   </div>

@@ -45,7 +45,7 @@ async function main() {
       user_metadata: {
         role: 'admin',
         full_name: 'Innovise Admin Staff',
-        phone: '+919506166560'
+        phone: '+918052566560'
       }
     });
     
@@ -60,7 +60,7 @@ async function main() {
     const { error: profileError } = await supabase.from('profiles').upsert({
       id: adminUser.id,
       email: 'officialtaxinn@gmail.com',
-      phone: '+919506166560',
+      phone: '+918052566560',
       full_name: 'Innovise Admin Staff',
       role: 'admin'
     });

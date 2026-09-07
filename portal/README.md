@@ -43,7 +43,7 @@ To immediately test the application with prepopulated details:
 2. Open and run [supabase_seed.sql](supabase_seed.sql) to register a test admin and client user.
 
 This seeds the following credentials:
-- **Admin Login**: `+919506166560` or `officialtaxinn@gmail.com` / Password: `password123`
+- **Admin Login**: `+918052566560` or `officialtaxinn@gmail.com` / Password: `password123`
 - **Client Login**: `+919876543210` / Password: `password123`
 
 ---
@@ -74,4 +74,4 @@ If you sign up or login with a second client user, confirm that the second clien
 Attempt to download a document from the vault. Notice that the link URL points to `https://your-project.supabase.co/storage/v1/object/sign/documents/...`. It uses a short-lived signature token. Copied links will expire and become inaccessible without active auth.
 
 ### 3. Admin Account Onboarding
-Log in as the seed admin `+919506166560` or `officialtaxinn@gmail.com`. Use the console to register a new client profile. Verify that the new user is correctly provisioned, and you can now assign them custom compliance services, create invoices, upload office files, and verify documents they upload.
+Log in as the seed admin `+918052566560` or `officialtaxinn@gmail.com`. Use the console to register a new client profile. Verify that the new user is correctly provisioned, and you can now assign them custom compliance services, create invoices, upload office files, and verify documents they upload.

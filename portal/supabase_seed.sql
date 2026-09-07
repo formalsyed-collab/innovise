@@ -5,7 +5,7 @@
 -- Enable pgcrypto extension if not already enabled
 create extension if not exists pgcrypto;
 
--- 1. Insert Demo Admin User (email: officialtaxinn@gmail.com, phone: +919506166560, password: password123)
+-- 1. Insert Demo Admin User (email: officialtaxinn@gmail.com, phone: +918052566560, password: password123)
 -- Trigger "on_auth_user_created" will automatically insert a profile row.
 insert into auth.users (
   instance_id,
@@ -31,12 +31,12 @@ insert into auth.users (
   'authenticated',
   'authenticated',
   'officialtaxinn@gmail.com',
-  '+919506166560',
+  '+918052566560',
   now(),
   crypt('password123', gen_salt('bf', 10)),
   now(),
   '{"provider":"email","providers":["email","phone"]}',
-  '{"full_name":"Innovise Admin Staff","phone":"+919506166560","role":"admin"}',
+  '{"full_name":"Innovise Admin Staff","phone":"+918052566560","role":"admin"}',
   now(),
   now(),
   '',

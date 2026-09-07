@@ -6,9 +6,9 @@ const serviceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const supabase = createClient(supabaseUrl, serviceKey);
 
 async function main() {
-    console.log('Testing login with phone +919506166560...');
+    console.log('Testing login with phone +918052566560...');
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        phone: '+919506166560',
+        phone: '+918052566560',
         password: 'password123'
     });
     

@@ -10,26 +10,35 @@ const normalizePhone = (phone: string) => {
   return phone.replace(/[^\d+]/g, '')
 }
 
-const getAuthEmail = (identifier: string) => {
-  const normalized = normalizePhone(identifier)
-  
+const getAuthCandidates = (identifier: string): string[] => {
+  const trimmed = identifier.trim()
+  const rawDigits = identifier.replace(/\D/g, '')
+  const candidates: string[] = []
+
+  if (trimmed.includes('@')) {
+    candidates.push(trimmed.toLowerCase())
+  }
+
   // Admin phone number mappings
-  if (normalized === '+919506166560' || normalized === '9506166560' || normalized === '919506166560') {
-    return 'officialtaxinn@gmail.com'
+  if (['8052566560', '918052566560', '9506166560', '919506166560'].includes(rawDigits)) {
+    candidates.push('officialtaxinn@gmail.com')
   }
-  
+
   // Seed Demo Client mapping
-  if (normalized === '+919876543210' || normalized === '9876543210' || normalized === '919876543210') {
-    return 'client@innovise.in'
+  if (['9876543210', '919876543210'].includes(rawDigits)) {
+    candidates.push('client@innovise.in')
   }
 
-  // If it's already an email, return it
-  if (identifier.includes('@')) {
-    return identifier.trim()
+  if (rawDigits.length >= 10) {
+    const last10 = rawDigits.slice(-10)
+    candidates.push(`phone_${last10}@innovise.local`)
+    candidates.push(`phone_91${last10}@innovise.local`)
+    candidates.push(`phone_+91${last10}@innovise.local`)
+    candidates.push(`phone_${rawDigits}@innovise.local`)
+    candidates.push(`phone_+${rawDigits}@innovise.local`)
   }
 
-  // Otherwise, use virtual email
-  return `phone_${normalized}@innovise.local`
+  return Array.from(new Set(candidates))
 }
 
 const TRANSLATIONS = {
@@ -159,16 +168,58 @@ export default function LoginPage() {
         setSignUpSuccess(true)
         setLoading(false)
       } else {
-        // Sign In Flow
-        const authEmail = getAuthEmail(phoneVal)
+        // Sign In Flow: Try candidates sequentially
+        const candidates = getAuthCandidates(phoneVal)
+        let lastError: string | null = null
+        let success = false
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: authEmail,
-          password,
-        })
+        for (const authEmail of candidates) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password,
+          })
 
-        if (signInError) {
-          setError(signInError.message)
+          if (!signInError) {
+            success = true
+            break
+          } else {
+            lastError = signInError.message
+          }
+        }
+
+        if (!success) {
+          // If direct candidate patterns fail, perform server-assisted lookup by email/phone from profiles
+          try {
+            const lookupRes = await fetch('/api/auth/lookup-identifier', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ identifier: phoneVal })
+            })
+            if (lookupRes.ok) {
+              const { authEmails, authEmail } = await lookupRes.json()
+              const candidatesToTry: string[] = authEmails || (authEmail ? [authEmail] : [])
+              for (const emailToTry of candidatesToTry) {
+                if (!candidates.includes(emailToTry)) {
+                  const { error: retryError } = await supabase.auth.signInWithPassword({
+                    email: emailToTry,
+                    password,
+                  })
+                  if (!retryError) {
+                    success = true
+                    break
+                  } else {
+                    lastError = retryError.message
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            // Ignore lookup error and report last error
+          }
+        }
+
+        if (!success) {
+          setError(lastError || 'Invalid login credentials')
           setLoading(false)
           return
         }

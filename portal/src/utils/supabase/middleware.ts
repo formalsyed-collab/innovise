@@ -45,11 +45,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const isAuthPage = path === '/login' || path === '/forgot-password' || path === '/reset-password' || path.startsWith('/agent/login') || path.startsWith('/agent/register')
+  const isAuthPage = path === '/login' || path === '/forgot-password' || path === '/reset-password'
 
   // Helper function to redirect while preserving the exact cookie options
   const redirectWithCookies = (url: URL) => {
@@ -61,56 +57,89 @@ export async function updateSession(request: NextRequest) {
     return redirectRes
   }
 
-  if (
-    !user &&
-    !isAuthPage &&
-    path !== '/' &&
-    !path.startsWith('/auth')
-  ) {
+  // Fast-path: Check if any auth cookie exists before making network calls
+  const allCookies = request.cookies.getAll()
+  const hasAuthToken = allCookies.some(c => c.name.includes('-auth-token'))
+
+  // If visitor is on an auth page with no auth cookies, skip Supabase calls completely
+  if (!hasAuthToken && isAuthPage) {
+    return supabaseResponse
+  }
+
+  // If visitor is trying to access protected routes with no auth cookies, redirect to login immediately
+  if (!hasAuthToken && !isAuthPage && path !== '/' && !path.startsWith('/auth')) {
     const url = request.nextUrl.clone()
-    
-    if (path.startsWith('/agent')) {
-      url.pathname = '/agent/login'
-    } else {
-      url.pathname = '/login'
-    }
-    
+    url.pathname = '/login'
     return redirectWithCookies(url)
   }
 
-  if (user) {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+  try {
+    // Wrap getUser in a 2500ms timeout race to guarantee Edge Middleware never exceeds Vercel limits
+    const authPromise = supabase.auth.getUser()
+    const timeoutPromise = new Promise<{ data: { user: null }; error: any }>((_, reject) =>
+      setTimeout(() => reject(new Error('Auth request timed out')), 2500)
+    )
 
-    const role = profile?.role || user.user_metadata?.role
+    const { data: { user } } = await Promise.race([authPromise, timeoutPromise])
 
-    if (path === '/' || isAuthPage) {
+    if (
+      !user &&
+      !isAuthPage &&
+      path !== '/' &&
+      !path.startsWith('/auth')
+    ) {
       const url = request.nextUrl.clone()
-      if (role === 'admin') url.pathname = '/admin'
-      else if (role === 'agent') url.pathname = '/agent/dashboard'
-      else if (path.startsWith('/agent')) url.pathname = '/agent/dashboard'
-      else url.pathname = '/dashboard'
+      url.pathname = '/login'
       return redirectWithCookies(url)
     }
 
-    if (path.startsWith('/admin') && role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = role === 'agent' ? '/agent/dashboard' : '/dashboard'
-      return redirectWithCookies(url)
-    }
+    if (user) {
+      // Prioritize role from user metadata to save a database round-trip
+      let role = user.user_metadata?.role || (user.app_metadata as any)?.role
 
-    if (path.startsWith('/dashboard') && role === 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin'
-      return redirectWithCookies(url)
+      if (!role) {
+        try {
+          const profilePromise = supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+          const profileTimeout = new Promise<{ data: null; error: any }>((_, reject) =>
+            setTimeout(() => reject(new Error('Profile query timed out')), 1500)
+          )
+
+          const { data: profile } = await Promise.race([profilePromise, profileTimeout])
+          role = profile?.role
+        } catch {
+          role = 'client'
+        }
+      }
+
+      if (path === '/' || isAuthPage) {
+        const url = request.nextUrl.clone()
+        if (role === 'admin') url.pathname = '/admin'
+        else url.pathname = '/dashboard'
+        return redirectWithCookies(url)
+      }
+
+      if (path.startsWith('/admin') && role !== 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return redirectWithCookies(url)
+      }
+
+      if (path.startsWith('/dashboard') && role === 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin'
+        return redirectWithCookies(url)
+      }
     }
-    
-    if (path.startsWith('/dashboard') && role === 'agent') {
+  } catch {
+    // If Supabase timed out or errored, allow auth pages or safely redirect to login
+    if (!isAuthPage && path !== '/' && !path.startsWith('/auth')) {
       const url = request.nextUrl.clone()
-      url.pathname = '/agent/dashboard'
+      url.pathname = '/login'
       return redirectWithCookies(url)
     }
   }

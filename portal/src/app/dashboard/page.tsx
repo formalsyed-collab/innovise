@@ -7,10 +7,74 @@ import {
   User, Mail, Phone, MapPin, Key, LogOut, CheckCircle2, 
   Clock, AlertTriangle, FileText, Upload, Download, Award,
   IndianRupee, ChevronRight, HelpCircle, Check, RefreshCw, CreditCard,
-  Plus, X
+  Plus, X, Landmark, ShieldCheck, FileSpreadsheet, TrendingUp, Sparkles,
+  Copy, ExternalLink, Printer, CheckCheck, RefreshCcw, Building2, Calendar,
+  Hash, ArrowUpRight, CheckCircle, Info
 } from 'lucide-react'
 
 // Define typings
+export interface GstCashHead {
+  tax: number
+  interest: number
+  penalty: number
+  fee: number
+  others: number
+  total: number
+}
+
+export interface GstLedgerData {
+  gstin?: string
+  trade_name?: string
+  legal_name?: string
+  taxpayer_type?: string
+  status?: string
+  cash_ledger?: {
+    igst: GstCashHead
+    cgst: GstCashHead
+    sgst: GstCashHead
+    cess: GstCashHead
+    total_cash: number
+  }
+  credit_ledger?: {
+    igst: number
+    cgst: number
+    sgst: number
+    cess: number
+    total_credit: number
+  }
+  liability_ledger?: {
+    igst: number
+    cgst: number
+    sgst: number
+    cess: number
+    total_liability: number
+  }
+  return_status?: {
+    gstr1?: {
+      period: string
+      status: 'Filed' | 'Pending' | 'Due' | 'Not Applicable'
+      filing_date?: string
+      arn?: string
+    }
+    gstr3b?: {
+      period: string
+      status: 'Filed' | 'Pending' | 'Due' | 'Not Applicable'
+      filing_date?: string
+      arn?: string
+    }
+    gstr9?: {
+      period: string
+      status: 'Filed' | 'Pending' | 'Due' | 'Optional'
+      filing_date?: string
+      arn?: string
+    }
+    next_due_date?: string
+  }
+  remarks?: string
+  updated_at?: string
+  updated_by_name?: string
+}
+
 interface Profile {
   id: string
   full_name: string
@@ -18,6 +82,10 @@ interface Profile {
   phone: string | null
   address: string | null
   role: string
+  bank_details?: {
+    gst_ledger?: GstLedgerData
+    [key: string]: any
+  } | null
 }
 
 interface Service {
@@ -76,6 +144,7 @@ const DASHBOARD_TRANSLATIONS = {
     tabServices: "My Services",
     tabDocuments: "Documents",
     tabPayments: "Invoices & Dues",
+    tabGst: "GST Portal & Ledger",
     tabProfile: "Profile Settings",
     logout: "Logout",
     subtabMonthlyBills: "Monthly Bills",
@@ -101,6 +170,30 @@ const DASHBOARD_TRANSLATIONS = {
     whatsappContact: "Contact to Pay via WhatsApp",
     docVault: "Documents Vault",
     docVaultDesc: "Upload files requested by the firm or download your verified registration certificates.",
+    
+    // GST Portal specific translations
+    gstPortalTitle: "Electronic GST Portal Ledgers & Balances",
+    gstPortalDesc: "Real-time ledger balances, Input Tax Credit (ITC) tracking, and official GST return status verified by Innovise CA Desk.",
+    gstLiveBadge: "Live Synchronized",
+    verifiedTaxpayer: "Verified Active Taxpayer",
+    copyGstin: "Copy GSTIN",
+    gstinCopied: "Copied!",
+    cashLedgerBalance: "Electronic Cash Ledger",
+    creditLedgerBalance: "Electronic Credit Ledger (ITC)",
+    netTaxPower: "Combined Tax Offset Power",
+    pendingGstDues: "Electronic Liability / Dues",
+    cashLedgerMatrixTitle: "Electronic Cash Ledger Matrix",
+    cashLedgerMatrixDesc: "Official Government of India Major & Minor head ledger breakdown.",
+    creditLedgerMatrixTitle: "Input Tax Credit (ITC) Available",
+    creditLedgerMatrixDesc: "Eligible credit balance available in your electronic ledger to offset future outward tax.",
+    returnTrackerTitle: "GST Return Filing Tracker & ARN Records",
+    returnTrackerDesc: "Latest filing statuses, ARN references, and next statutory due dates.",
+    caAdvisoryTitle: "CA Compliance Advisory & Balance Insights",
+    printSummary: "Print / Export Summary",
+    askGstQuery: "Ask CA About GST Balance",
+    viewGstDashboard: "View Full GST Ledger →",
+    noGstConfigured: "GST Portal Records Being Configured",
+    noGstConfiguredDesc: "Our compliance team is updating your GST portal electronic cash and credit ledger balances.",
     
     // Additional translations
     myRegisteredServices: "My Registered Services",
@@ -223,6 +316,7 @@ const DASHBOARD_TRANSLATIONS = {
     tabServices: "मेरी सेवाएं",
     tabDocuments: "दस्तावेज़",
     tabPayments: "बिल और भुगतान",
+    tabGst: "जीएसटी पोर्टल और लेजर",
     tabProfile: "प्रोफ़ाइल सेटिंग्स",
     logout: "लॉगआउट",
     subtabMonthlyBills: "मासिक बिल",
@@ -248,6 +342,30 @@ const DASHBOARD_TRANSLATIONS = {
     whatsappContact: "व्हाट्सएप के माध्यम से भुगतान के लिए संपर्क करें",
     docVault: "दस्तावेज़ तिजोरी (Vault)",
     docVaultDesc: "फर्म द्वारा अनुरोधित फाइलें अपलोड करें या अपने सत्यापित पंजीकरण प्रमाणपत्र डाउनलोड करें।",
+
+    // GST Portal specific translations
+    gstPortalTitle: "इलेक्ट्रॉनिक जीएसटी पोर्टल लेजर और शेष राशि",
+    gstPortalDesc: "रियल-टाइम लेजर बैलेंस, इनपुट टैक्स क्रेडिट (ITC) ट्रैकिंग, और आधिकारिक जीएसटी रिटर्न स्थिति जो इनोवाइज सीए डेस्क द्वारा सत्यापित है।",
+    gstLiveBadge: "लाइव सिंक्रोनाइज़्ड",
+    verifiedTaxpayer: "सत्यापित सक्रिय करदाता",
+    copyGstin: "GSTIN कॉपी करें",
+    gstinCopied: "कॉपी हो गया!",
+    cashLedgerBalance: "इलेक्ट्रॉनिक कैश लेजर",
+    creditLedgerBalance: "इलेक्ट्रॉनिक क्रेडिट लेजर (ITC)",
+    netTaxPower: "उपलब्ध कुल टैक्स क्षमता",
+    pendingGstDues: "इलेक्ट्रॉनिक देनदारी / बकाया",
+    cashLedgerMatrixTitle: "इलेक्ट्रॉनिक कैश लेजर मैट्रिक्स",
+    cashLedgerMatrixDesc: "भारत सरकार के आधिकारिक मेजर और माइनर हेड लेजर का विस्तृत विवरण।",
+    creditLedgerMatrixTitle: "उपलब्ध इनपुट टैक्स क्रेडिट (ITC)",
+    creditLedgerMatrixDesc: "भविष्य की टैक्स देनदारी को ऑफसेट करने के लिए आपके इलेक्ट्रॉनिक लेजर में पात्र क्रेडिट बैलेंस।",
+    returnTrackerTitle: "जीएसटी रिटर्न फाइलिंग ट्रैकर और ARN रिकॉर्ड",
+    returnTrackerDesc: "नवीनतम फाइलिंग स्थिति, ARN संदर्भ, और अगली नियत तारीखें।",
+    caAdvisoryTitle: "CA अनुपालन सलाह और लेजर अंतर्दृष्टि",
+    printSummary: "सारांश प्रिंट / डाउनलोड करें",
+    askGstQuery: "जीएसटी बैलेंस के बारे में सीए से पूछें",
+    viewGstDashboard: "पूरा जीएसटी लेजर देखें →",
+    noGstConfigured: "जीएसटी पोर्टल रिकॉर्ड अपडेट हो रहे हैं",
+    noGstConfiguredDesc: "हमारी अनुपालन टीम आपके इलेक्ट्रॉनिक कैश और क्रेडिट लेजर बैलेंस को अपडेट कर रही है।",
 
     // Additional translations
     myRegisteredServices: "मेरी पंजीकृत सेवाएं",
@@ -482,7 +600,8 @@ export default function DashboardPage() {
   const [serviceUploadingId, setServiceUploadingId] = useState<string | null>(null)
   const [serviceUploadDocType, setServiceUploadDocType] = useState<{[serviceId: string]: string}>({})
   const [customDocTypeInput, setCustomDocTypeInput] = useState<{[serviceId: string]: string}>({})
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'documents' | 'payments' | 'profile'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'documents' | 'payments' | 'gst' | 'profile'>('overview')
+  const [gstCopied, setGstCopied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   
@@ -1534,7 +1653,7 @@ export default function DashboardPage() {
                 <strong>Innovise Consultant</strong><br />
                 Civil Lines, Kanpur, Uttar Pradesh<br />
                 Email: officialtaxinn@gmail.com<br />
-                Phone: +91 95061 66560
+                Phone: +91 80525 66560
               </div>
             </div>
 
@@ -1771,6 +1890,26 @@ export default function DashboardPage() {
               )}
             </button>
             <button
+              onClick={() => setActiveTab('gst')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'gst'
+                  ? 'bg-ink text-white shadow-lg shadow-ink/10'
+                  : 'text-dim hover:bg-mist hover:text-ink'
+              }`}
+            >
+              <Landmark className="w-5 h-5" />
+              {t.tabGst}
+              {profile?.bank_details?.gst_ledger?.gstin ? (
+                <span className="ml-auto bg-jade/15 text-jade text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  Live
+                </span>
+              ) : (
+                <span className="ml-auto bg-gold/15 text-gold text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  Setup
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('profile')}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === 'profile'
@@ -1843,6 +1982,117 @@ export default function DashboardPage() {
                     className="px-4 py-2 bg-gold hover:bg-gold2 text-ink text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer"
                   >
                     {t.uploadNow}
+                  </button>
+                </div>
+              )}
+
+              {/* GST Portal Live Ledger Overview Card */}
+              {profile?.bank_details?.gst_ledger ? (
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink via-ink2 to-ink3 text-white p-6 sm:p-7 shadow-xl shadow-ink/10 border border-white/10">
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-fire/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+                  <div className="absolute bottom-0 right-1/4 w-60 h-60 bg-jade/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                  <div className="relative z-10 space-y-6">
+                    {/* Top row */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white/10 text-gold flex items-center justify-center backdrop-blur-md border border-white/10 shadow-md">
+                          <Landmark className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-extrabold tracking-tight">GST Portal Electronic Ledger</h3>
+                            <span className="bg-jade/20 text-jade2 border border-jade2/30 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-jade2 animate-ping inline-block"></span>
+                              Live Verified
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-300">
+                            {profile.bank_details.gst_ledger.trade_name || profile.full_name} • GSTIN: <strong className="font-mono text-white tracking-wider">{profile.bank_details.gst_ledger.gstin || 'Active'}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setActiveTab('gst')}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-fire hover:bg-fire2 text-white text-xs font-bold rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
+                      >
+                        {t.viewGstDashboard}
+                        <ArrowUpRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Metric columns */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{t.cashLedgerBalance}</span>
+                        <span className="text-xl sm:text-2xl font-extrabold text-white mt-1 block">
+                          ₹{(
+                            (profile.bank_details.gst_ledger.cash_ledger?.total_cash) ?? (
+                              (profile.bank_details.gst_ledger.cash_ledger?.igst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.sgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cess?.total ?? 0)
+                            )
+                          ).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] text-gray-400 mt-1 block">Cash in GST Portal</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{t.creditLedgerBalance}</span>
+                        <span className="text-xl sm:text-2xl font-extrabold text-jade2 mt-1 block">
+                          ₹{(
+                            (profile.bank_details.gst_ledger.credit_ledger?.total_credit) ?? (
+                              (profile.bank_details.gst_ledger.credit_ledger?.igst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.sgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cess ?? 0)
+                            )
+                          ).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] text-gray-400 mt-1 block">Input Tax Credit (ITC)</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{t.netTaxPower}</span>
+                        <span className="text-xl sm:text-2xl font-extrabold text-sky mt-1 block">
+                          ₹{(
+                            ((profile.bank_details.gst_ledger.cash_ledger?.total_cash) ?? (
+                              (profile.bank_details.gst_ledger.cash_ledger?.igst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.sgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cess?.total ?? 0)
+                            )) +
+                            ((profile.bank_details.gst_ledger.credit_ledger?.total_credit) ?? (
+                              (profile.bank_details.gst_ledger.credit_ledger?.igst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.sgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cess ?? 0)
+                            ))
+                          ).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] text-gray-400 mt-1 block">Total Offset Capability</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 rounded-3xl bg-pearl border border-line flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky/10 text-sky flex items-center justify-center flex-shrink-0">
+                      <Landmark className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-ink">GST Portal &amp; Electronic Ledgers</h4>
+                      <p className="text-xs text-dim mt-0.5">Track your official electronic cash ledger, ITC balance, and return filing history.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('gst')}
+                    className="px-4 py-2 border border-line hover:border-ink rounded-xl text-xs font-bold text-ink bg-white transition-all whitespace-nowrap cursor-pointer hover:bg-pearl"
+                  >
+                    Open GST Portal View →
                   </button>
                 </div>
               )}
@@ -2648,7 +2898,233 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* TAB 5: PROFILE SETTINGS */}
+          {/* TAB 5: GST PORTAL & LEDGER DASHBOARD */}
+          {activeTab === 'gst' && (
+            <div className="space-y-8 animate-fade-in">
+              {/* Header Hero Banner */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink via-ink2 to-ink3 text-white p-6 sm:p-8 shadow-2xl border border-white/10">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-fire/15 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+                <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-jade/15 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="relative z-10 space-y-6">
+                  {/* Top line with branding & status */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-white/10 text-gold flex items-center justify-center backdrop-blur-md border border-white/15 shadow-md">
+                          <Landmark className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-2xl font-extrabold tracking-tight">
+                          {t.gstPortalTitle}
+                        </h2>
+                        <span className="bg-jade/20 text-jade2 border border-jade2/30 text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                          <span className="w-2 h-2 rounded-full bg-jade2 animate-ping inline-block"></span>
+                          {t.gstLiveBadge}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-300 max-w-2xl">
+                        {t.gstPortalDesc}
+                      </p>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
+                      <button
+                        onClick={() => window.print()}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer shadow-sm"
+                        title="Print or save as PDF"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        {t.printSummary}
+                      </button>
+                      <button
+                        onClick={() => { setActiveTab('documents'); setDocSubTab('queries') }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-fire hover:bg-fire2 text-white shadow-lg shadow-fire/20 transition-all cursor-pointer"
+                      >
+                        <HelpCircle className="w-3.5 h-3.5" />
+                        {t.askGstQuery}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Business & GSTIN Identity Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-sky/15 text-sky flex items-center justify-center font-bold">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-extrabold text-white">
+                            {profile?.bank_details?.gst_ledger?.trade_name || profile?.full_name}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-semibold">
+                            ({profile?.bank_details?.gst_ledger?.taxpayer_type || 'Regular Taxpayer'})
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-400 block">
+                          Legal: {profile?.bank_details?.gst_ledger?.legal_name || profile?.full_name}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="px-3.5 py-1.5 rounded-xl bg-ink/70 border border-white/15 flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">GSTIN:</span>
+                        <span className="font-mono text-sm font-extrabold text-gold tracking-wider">
+                          {profile?.bank_details?.gst_ledger?.gstin || 'GST-NOT-CONFIGURED'}
+                        </span>
+                      </div>
+
+                      {profile?.bank_details?.gst_ledger?.gstin && (
+                        <button
+                          onClick={() => {
+                            if (profile?.bank_details?.gst_ledger?.gstin) {
+                              navigator.clipboard.writeText(profile.bank_details.gst_ledger.gstin)
+                              setGstCopied(true)
+                              setTimeout(() => setGstCopied(false), 2000)
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold text-white transition-all cursor-pointer inline-flex items-center gap-1"
+                        >
+                          {gstCopied ? <CheckCheck className="w-3.5 h-3.5 text-jade2" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{gstCopied ? t.gstinCopied : t.copyGstin}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Hero KPI Metric Cards */}
+              {profile?.bank_details?.gst_ledger ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    {/* KPI 1: Electronic Cash Ledger */}
+                    <div className="p-6 rounded-3xl bg-pearl border border-line flex flex-col justify-between shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-dim uppercase tracking-wider">{t.cashLedgerBalance}</span>
+                        <div className="w-8 h-8 rounded-xl bg-gold/10 text-gold flex items-center justify-center">
+                          <IndianRupee className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-3xl font-extrabold text-ink block">
+                          ₹{(
+                            (profile.bank_details.gst_ledger.cash_ledger?.total_cash) ?? (
+                              (profile.bank_details.gst_ledger.cash_ledger?.igst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.sgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cess?.total ?? 0)
+                            )
+                          ).toLocaleString('en-IN')}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <span className="text-[10px] font-semibold bg-white border border-line px-1.5 py-0.5 rounded text-dim">
+                            IGST: ₹{(profile.bank_details.gst_ledger.cash_ledger?.igst?.total ?? 0).toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-semibold bg-white border border-line px-1.5 py-0.5 rounded text-dim">
+                            CGST: ₹{(profile.bank_details.gst_ledger.cash_ledger?.cgst?.total ?? 0).toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-semibold bg-white border border-line px-1.5 py-0.5 rounded text-dim">
+                            SGST: ₹{(profile.bank_details.gst_ledger.cash_ledger?.sgst?.total ?? 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KPI 2: Electronic Credit Ledger (ITC) */}
+                    <div className="p-6 rounded-3xl bg-pearl border border-jade/30 flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-jade/5 rounded-full blur-xl pointer-events-none"></div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-jade uppercase tracking-wider">{t.creditLedgerBalance}</span>
+                        <div className="w-8 h-8 rounded-xl bg-jade/10 text-jade flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-3xl font-extrabold text-jade block">
+                          ₹{(
+                            (profile.bank_details.gst_ledger.credit_ledger?.total_credit) ?? (
+                              (profile.bank_details.gst_ledger.credit_ledger?.igst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.sgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cess ?? 0)
+                            )
+                          ).toLocaleString('en-IN')}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <span className="text-[10px] font-semibold bg-jade/10 text-jade px-1.5 py-0.5 rounded">
+                            IGST: ₹{(profile.bank_details.gst_ledger.credit_ledger?.igst ?? 0).toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-semibold bg-jade/10 text-jade px-1.5 py-0.5 rounded">
+                            CGST: ₹{(profile.bank_details.gst_ledger.credit_ledger?.cgst ?? 0).toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-semibold bg-jade/10 text-jade px-1.5 py-0.5 rounded">
+                            SGST: ₹{(profile.bank_details.gst_ledger.credit_ledger?.sgst ?? 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KPI 3: Combined Tax Offset Power */}
+                    <div className="p-6 rounded-3xl bg-pearl border border-sky/30 flex flex-col justify-between shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-sky uppercase tracking-wider">{t.netTaxPower}</span>
+                        <div className="w-8 h-8 rounded-xl bg-sky/10 text-sky flex items-center justify-center">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-3xl font-extrabold text-sky block">
+                          ₹{(
+                            ((profile.bank_details.gst_ledger.cash_ledger?.total_cash) ?? (
+                              (profile.bank_details.gst_ledger.cash_ledger?.igst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.sgst?.total ?? 0) +
+                              (profile.bank_details.gst_ledger.cash_ledger?.cess?.total ?? 0)
+                            )) +
+                            ((profile.bank_details.gst_ledger.credit_ledger?.total_credit) ?? (
+                              (profile.bank_details.gst_ledger.credit_ledger?.igst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.sgst ?? 0) +
+                              (profile.bank_details.gst_ledger.credit_ledger?.cess ?? 0)
+                            ))
+                          ).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[11px] text-dim block mt-1.5">
+                          Liquid Cash + Input Tax Credit
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </>
+              ) : (
+                /* Empty / Configuration State */
+                <div className="text-center py-16 px-6 border-2 border-dashed border-line rounded-3xl bg-pearl/30 space-y-4">
+                  <div className="w-16 h-16 rounded-3xl bg-gold/10 text-gold flex items-center justify-center mx-auto shadow-sm">
+                    <Landmark className="w-8 h-8" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-1.5">
+                    <h3 className="text-lg font-bold text-ink">{t.noGstConfigured}</h3>
+                    <p className="text-xs text-dim leading-relaxed">
+                      {t.noGstConfiguredDesc}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setActiveTab('documents'); setDocSubTab('queries') }}
+                    className="px-5 py-2.5 bg-ink hover:bg-ink2 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                    {t.askGstQuery}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 6: PROFILE SETTINGS */}
           {activeTab === 'profile' && (
             <div className="space-y-8 animate-fade-in">
               {/* Profile details */}

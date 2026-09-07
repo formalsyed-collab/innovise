@@ -20,13 +20,13 @@ async function main() {
     console.log("Admin auth user not found. Creating user...");
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email: 'officialtaxinn@gmail.com',
-      phone: '+919506166560',
+      phone: '+918052566560',
       password: 'password123',
       email_confirm: true,
       phone_confirm: true,
       user_metadata: {
         full_name: 'Innovise Admin Staff',
-        phone: '+919506166560',
+        phone: '+918052566560',
         role: 'admin'
       }
     });
@@ -43,7 +43,7 @@ async function main() {
     await supabase.from('profiles').upsert({
       id: newUser.user.id,
       email: 'officialtaxinn@gmail.com',
-      phone: '+919506166560',
+      phone: '+918052566560',
       full_name: 'Innovise Admin Staff',
       role: 'admin'
     });
@@ -56,7 +56,7 @@ async function main() {
     await supabase.from('profiles').upsert({
       id: existingAdmin.id,
       email: 'officialtaxinn@gmail.com',
-      phone: '+919506166560',
+      phone: '+918052566560',
       full_name: 'Innovise Admin Staff',
       role: 'admin'
     });

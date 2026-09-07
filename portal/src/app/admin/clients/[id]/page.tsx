@@ -6,9 +6,73 @@ import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, Award, 
   Clock, FileText, IndianRupee, Plus, Edit, Check, 
-  Trash2, Upload, Download, AlertTriangle, CheckCircle, RefreshCw
+  Trash2, Upload, Download, AlertTriangle, CheckCircle, RefreshCw,
+  Landmark, ShieldCheck, FileSpreadsheet, Sparkles, Save, CheckCircle2,
+  Calendar, Hash, Building2, TrendingUp, AlertCircle, RefreshCcw
 } from 'lucide-react'
 import Link from 'next/link'
+
+export interface GstCashHead {
+  tax: number
+  interest: number
+  penalty: number
+  fee: number
+  others: number
+  total: number
+}
+
+export interface GstLedgerData {
+  gstin?: string
+  trade_name?: string
+  legal_name?: string
+  taxpayer_type?: string
+  status?: string
+  cash_ledger: {
+    igst: GstCashHead
+    cgst: GstCashHead
+    sgst: GstCashHead
+    cess: GstCashHead
+    total_cash: number
+  }
+  credit_ledger: {
+    igst: number
+    cgst: number
+    sgst: number
+    cess: number
+    total_credit: number
+  }
+  liability_ledger?: {
+    igst: number
+    cgst: number
+    sgst: number
+    cess: number
+    total_liability: number
+  }
+  return_status?: {
+    gstr1?: {
+      period: string
+      status: 'Filed' | 'Pending' | 'Due' | 'Not Applicable'
+      filing_date?: string
+      arn?: string
+    }
+    gstr3b?: {
+      period: string
+      status: 'Filed' | 'Pending' | 'Due' | 'Not Applicable'
+      filing_date?: string
+      arn?: string
+    }
+    gstr9?: {
+      period: string
+      status: 'Filed' | 'Pending' | 'Due' | 'Optional'
+      filing_date?: string
+      arn?: string
+    }
+    next_due_date?: string
+  }
+  remarks?: string
+  updated_at?: string
+  updated_by_name?: string
+}
 
 interface ClientProfile {
   id: string
@@ -16,6 +80,10 @@ interface ClientProfile {
   email: string | null
   phone: string | null
   address: string | null
+  bank_details?: {
+    gst_ledger?: GstLedgerData
+    [key: string]: any
+  } | null
   created_at: string
 }
 
@@ -67,7 +135,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   // App states
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'services' | 'documents' | 'payments'>('services')
+  const [activeTab, setActiveTab] = useState<'services' | 'documents' | 'payments' | 'gst_ledger'>('services')
 
   const [client, setClient] = useState<ClientProfile | null>(null)
   const [services, setServices] = useState<Service[]>([])
@@ -77,6 +145,353 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   // Modal / Form States
   const [actionError, setActionError] = useState<string | null>(null)
+
+  // GST Ledger Form States
+  const [gstin, setGstin] = useState('')
+  const [tradeName, setTradeName] = useState('')
+  const [legalName, setLegalName] = useState('')
+  const [taxpayerType, setTaxpayerType] = useState('Regular')
+  const [taxpayerStatus, setTaxpayerStatus] = useState('Active')
+
+  // Cash Ledger Breakdown (Tax, Interest, Penalty, Fee, Others)
+  const [cashIgstTax, setCashIgstTax] = useState('0')
+  const [cashIgstInt, setCashIgstInt] = useState('0')
+  const [cashIgstPen, setCashIgstPen] = useState('0')
+  const [cashIgstFee, setCashIgstFee] = useState('0')
+  const [cashIgstOth, setCashIgstOth] = useState('0')
+
+  const [cashCgstTax, setCashCgstTax] = useState('0')
+  const [cashCgstInt, setCashCgstInt] = useState('0')
+  const [cashCgstPen, setCashCgstPen] = useState('0')
+  const [cashCgstFee, setCashCgstFee] = useState('0')
+  const [cashCgstOth, setCashCgstOth] = useState('0')
+
+  const [cashSgstTax, setCashSgstTax] = useState('0')
+  const [cashSgstInt, setCashSgstInt] = useState('0')
+  const [cashSgstPen, setCashSgstPen] = useState('0')
+  const [cashSgstFee, setCashSgstFee] = useState('0')
+  const [cashSgstOth, setCashSgstOth] = useState('0')
+
+  const [cashCessTax, setCashCessTax] = useState('0')
+  const [cashCessInt, setCashCessInt] = useState('0')
+  const [cashCessPen, setCashCessPen] = useState('0')
+  const [cashCessFee, setCashCessFee] = useState('0')
+  const [cashCessOth, setCashCessOth] = useState('0')
+
+  // Credit Ledger (ITC) Breakdown
+  const [creditIgst, setCreditIgst] = useState('0')
+  const [creditCgst, setCreditCgst] = useState('0')
+  const [creditSgst, setCreditSgst] = useState('0')
+  const [creditCess, setCreditCess] = useState('0')
+
+  // Electronic Liability / Dues
+  const [liabilityIgst, setLiabilityIgst] = useState('0')
+  const [liabilityCgst, setLiabilityCgst] = useState('0')
+  const [liabilitySgst, setLiabilitySgst] = useState('0')
+  const [liabilityCess, setLiabilityCess] = useState('0')
+
+  // Returns Filing Snapshot
+  const [gstr1Period, setGstr1Period] = useState('')
+  const [gstr1Status, setGstr1Status] = useState<'Filed' | 'Pending' | 'Due' | 'Not Applicable'>('Filed')
+  const [gstr1Date, setGstr1Date] = useState('')
+  const [gstr1Arn, setGstr1Arn] = useState('')
+
+  const [gstr3bPeriod, setGstr3bPeriod] = useState('')
+  const [gstr3bStatus, setGstr3bStatus] = useState<'Filed' | 'Pending' | 'Due' | 'Not Applicable'>('Filed')
+  const [gstr3bDate, setGstr3bDate] = useState('')
+  const [gstr3bArn, setGstr3bArn] = useState('')
+
+  const [gstr9Period, setGstr9Period] = useState('')
+  const [gstr9Status, setGstr9Status] = useState<'Filed' | 'Pending' | 'Due' | 'Optional'>('Filed')
+  const [gstr9Date, setGstr9Date] = useState('')
+  const [gstr9Arn, setGstr9Arn] = useState('')
+
+  const [nextDueDate, setNextDueDate] = useState('')
+  const [gstRemarks, setGstRemarks] = useState('')
+
+  const [gstSaveLoading, setGstSaveLoading] = useState(false)
+  const [gstSaveMsg, setGstSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Populate GST state helper
+  const populateGstFields = (ledger?: GstLedgerData | null, clientName?: string) => {
+    if (!ledger) {
+      setTradeName(clientName || '')
+      setLegalName(clientName || '')
+      return
+    }
+    setGstin(ledger.gstin || '')
+    setTradeName(ledger.trade_name || clientName || '')
+    setLegalName(ledger.legal_name || clientName || '')
+    setTaxpayerType(ledger.taxpayer_type || 'Regular')
+    setTaxpayerStatus(ledger.status || 'Active')
+
+    // Cash Ledger
+    if (ledger.cash_ledger) {
+      const { igst, cgst, sgst, cess } = ledger.cash_ledger
+      setCashIgstTax(String(igst?.tax ?? 0))
+      setCashIgstInt(String(igst?.interest ?? 0))
+      setCashIgstPen(String(igst?.penalty ?? 0))
+      setCashIgstFee(String(igst?.fee ?? 0))
+      setCashIgstOth(String(igst?.others ?? 0))
+
+      setCashCgstTax(String(cgst?.tax ?? 0))
+      setCashCgstInt(String(cgst?.interest ?? 0))
+      setCashCgstPen(String(cgst?.penalty ?? 0))
+      setCashCgstFee(String(cgst?.fee ?? 0))
+      setCashCgstOth(String(cgst?.others ?? 0))
+
+      setCashSgstTax(String(sgst?.tax ?? 0))
+      setCashSgstInt(String(sgst?.interest ?? 0))
+      setCashSgstPen(String(sgst?.penalty ?? 0))
+      setCashSgstFee(String(sgst?.fee ?? 0))
+      setCashSgstOth(String(sgst?.others ?? 0))
+
+      setCashCessTax(String(cess?.tax ?? 0))
+      setCashCessInt(String(cess?.interest ?? 0))
+      setCashCessPen(String(cess?.penalty ?? 0))
+      setCashCessFee(String(cess?.fee ?? 0))
+      setCashCessOth(String(cess?.others ?? 0))
+    }
+
+    // Credit Ledger (ITC)
+    if (ledger.credit_ledger) {
+      setCreditIgst(String(ledger.credit_ledger.igst ?? 0))
+      setCreditCgst(String(ledger.credit_ledger.cgst ?? 0))
+      setCreditSgst(String(ledger.credit_ledger.sgst ?? 0))
+      setCreditCess(String(ledger.credit_ledger.cess ?? 0))
+    }
+
+    // Liability
+    if (ledger.liability_ledger) {
+      setLiabilityIgst(String(ledger.liability_ledger.igst ?? 0))
+      setLiabilityCgst(String(ledger.liability_ledger.cgst ?? 0))
+      setLiabilitySgst(String(ledger.liability_ledger.sgst ?? 0))
+      setLiabilityCess(String(ledger.liability_ledger.cess ?? 0))
+    }
+
+    // Returns
+    if (ledger.return_status) {
+      const { gstr1, gstr3b, gstr9, next_due_date } = ledger.return_status
+      if (gstr1) {
+        setGstr1Period(gstr1.period || '')
+        setGstr1Status(gstr1.status || 'Filed')
+        setGstr1Date(gstr1.filing_date || '')
+        setGstr1Arn(gstr1.arn || '')
+      }
+      if (gstr3b) {
+        setGstr3bPeriod(gstr3b.period || '')
+        setGstr3bStatus(gstr3b.status || 'Filed')
+        setGstr3bDate(gstr3b.filing_date || '')
+        setGstr3bArn(gstr3b.arn || '')
+      }
+      if (gstr9) {
+        setGstr9Period(gstr9.period || '')
+        setGstr9Status(gstr9.status || 'Filed')
+        setGstr9Date(gstr9.filing_date || '')
+        setGstr9Arn(gstr9.arn || '')
+      }
+      setNextDueDate(next_due_date || '')
+    }
+
+    setGstRemarks(ledger.remarks || '')
+  }
+
+  // Load standard realistic demo data
+  const handleLoadSampleGstData = () => {
+    const defaultGstin = '09AAECI4589K1ZK'
+    setGstin(defaultGstin)
+    setTradeName(client?.full_name || 'Innovise Corporate Client')
+    setLegalName(client?.full_name || 'Innovise Corporate Client')
+    setTaxpayerType('Regular')
+    setTaxpayerStatus('Active')
+
+    // Cash Ledger sample
+    setCashIgstTax('12500')
+    setCashIgstInt('0')
+    setCashIgstPen('0')
+    setCashIgstFee('0')
+    setCashIgstOth('0')
+
+    setCashCgstTax('18450')
+    setCashCgstInt('0')
+    setCashCgstPen('0')
+    setCashCgstFee('0')
+    setCashCgstOth('0')
+
+    setCashSgstTax('18450')
+    setCashSgstInt('0')
+    setCashSgstPen('0')
+    setCashSgstFee('0')
+    setCashSgstOth('0')
+
+    setCashCessTax('0')
+    setCashCessInt('0')
+    setCashCessPen('0')
+    setCashCessFee('0')
+    setCashCessOth('0')
+
+    // Credit Ledger (ITC) sample
+    setCreditIgst('42800')
+    setCreditCgst('65200')
+    setCreditSgst('65200')
+    setCreditCess('0')
+
+    // Liability sample
+    setLiabilityIgst('0')
+    setLiabilityCgst('0')
+    setLiabilitySgst('0')
+    setLiabilityCess('0')
+
+    // Return status
+    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
+    setGstr1Period(currentMonth)
+    setGstr1Status('Filed')
+    setGstr1Date(new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0])
+    setGstr1Arn('AA09' + Math.floor(1000000000 + Math.random() * 9000000000))
+
+    setGstr3bPeriod(currentMonth)
+    setGstr3bStatus('Filed')
+    setGstr3bDate(new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0])
+    setGstr3bArn('AB09' + Math.floor(1000000000 + Math.random() * 9000000000))
+
+    setGstr9Period('FY 2025-26')
+    setGstr9Status('Filed')
+    setGstr9Date('2026-03-15')
+    setGstr9Arn('AC0987654321012')
+
+    setNextDueDate(new Date(Date.now() + 20 * 86400000).toISOString().split('T')[0])
+    setGstRemarks('ITC balance has been fully reconciled against GSTR-2B. Total surplus input tax credit of ₹1,73,200 is safely carried forward to offset future outward tax liabilities.')
+
+    setGstSaveMsg({ type: 'success', text: 'Loaded standard GST portal template. Click "Save & Sync to Client Portal" to apply.' })
+  }
+
+  // Save GST ledger
+  const handleSaveGstLedger = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGstSaveLoading(true)
+    setGstSaveMsg(null)
+
+    try {
+      const igstCashTotal = Number(cashIgstTax) + Number(cashIgstInt) + Number(cashIgstPen) + Number(cashIgstFee) + Number(cashIgstOth)
+      const cgstCashTotal = Number(cashCgstTax) + Number(cashCgstInt) + Number(cashCgstPen) + Number(cashCgstFee) + Number(cashCgstOth)
+      const sgstCashTotal = Number(cashSgstTax) + Number(cashSgstInt) + Number(cashSgstPen) + Number(cashSgstFee) + Number(cashSgstOth)
+      const cessCashTotal = Number(cashCessTax) + Number(cashCessInt) + Number(cashCessPen) + Number(cashCessFee) + Number(cashCessOth)
+      const totalCash = igstCashTotal + cgstCashTotal + sgstCashTotal + cessCashTotal
+
+      const crIgst = Number(creditIgst) || 0
+      const crCgst = Number(creditCgst) || 0
+      const crSgst = Number(creditSgst) || 0
+      const crCess = Number(creditCess) || 0
+      const totalCredit = crIgst + crCgst + crSgst + crCess
+
+      const liIgst = Number(liabilityIgst) || 0
+      const liCgst = Number(liabilityCgst) || 0
+      const liSgst = Number(liabilitySgst) || 0
+      const liCess = Number(liabilityCess) || 0
+      const totalLiability = liIgst + liCgst + liSgst + liCess
+
+      const ledgerPayload: GstLedgerData = {
+        gstin: gstin.trim().toUpperCase(),
+        trade_name: tradeName.trim(),
+        legal_name: legalName.trim(),
+        taxpayer_type: taxpayerType,
+        status: taxpayerStatus,
+        cash_ledger: {
+          igst: {
+            tax: Number(cashIgstTax) || 0,
+            interest: Number(cashIgstInt) || 0,
+            penalty: Number(cashIgstPen) || 0,
+            fee: Number(cashIgstFee) || 0,
+            others: Number(cashIgstOth) || 0,
+            total: igstCashTotal
+          },
+          cgst: {
+            tax: Number(cashCgstTax) || 0,
+            interest: Number(cashCgstInt) || 0,
+            penalty: Number(cashCgstPen) || 0,
+            fee: Number(cashCgstFee) || 0,
+            others: Number(cashCgstOth) || 0,
+            total: cgstCashTotal
+          },
+          sgst: {
+            tax: Number(cashSgstTax) || 0,
+            interest: Number(cashSgstInt) || 0,
+            penalty: Number(cashSgstPen) || 0,
+            fee: Number(cashSgstFee) || 0,
+            others: Number(cashSgstOth) || 0,
+            total: sgstCashTotal
+          },
+          cess: {
+            tax: Number(cashCessTax) || 0,
+            interest: Number(cashCessInt) || 0,
+            penalty: Number(cashCessPen) || 0,
+            fee: Number(cashCessFee) || 0,
+            others: Number(cashCessOth) || 0,
+            total: cessCashTotal
+          },
+          total_cash: totalCash
+        },
+        credit_ledger: {
+          igst: crIgst,
+          cgst: crCgst,
+          sgst: crSgst,
+          cess: crCess,
+          total_credit: totalCredit
+        },
+        liability_ledger: {
+          igst: liIgst,
+          cgst: liCgst,
+          sgst: liSgst,
+          cess: liCess,
+          total_liability: totalLiability
+        },
+        return_status: {
+          gstr1: {
+            period: gstr1Period,
+            status: gstr1Status,
+            filing_date: gstr1Date,
+            arn: gstr1Arn
+          },
+          gstr3b: {
+            period: gstr3bPeriod,
+            status: gstr3bStatus,
+            filing_date: gstr3bDate,
+            arn: gstr3bArn
+          },
+          gstr9: {
+            period: gstr9Period,
+            status: gstr9Status,
+            filing_date: gstr9Date,
+            arn: gstr9Arn
+          },
+          next_due_date: nextDueDate
+        },
+        remarks: gstRemarks.trim()
+      }
+
+      const res = await fetch('/api/admin/update-gst-ledger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: id,
+          gstLedger: ledgerPayload
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update GST ledger.')
+      }
+
+      setGstSaveMsg({ type: 'success', text: '✅ GST portal ledger successfully updated & synced to client dashboard!' })
+      await loadData()
+
+    } catch (err: any) {
+      setGstSaveMsg({ type: 'error', text: err.message || 'Error updating GST ledger.' })
+    } finally {
+      setGstSaveLoading(false)
+    }
+  }
 
   // Service form
   const [showServiceForm, setShowServiceForm] = useState(false)
@@ -141,6 +556,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       }
 
       setClient(profRes.data)
+      populateGstFields(profRes.data.bank_details?.gst_ledger, profRes.data.full_name)
       setServices(servsRes.data || [])
       
       const documentsList = docsRes.data || []
@@ -497,7 +913,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 <strong>Innovise Consultant</strong><br />
                 Civil Lines, Kanpur, Uttar Pradesh<br />
                 Email: officialtaxinn@gmail.com<br />
-                Phone: +91 95061 66560
+                Phone: +91 80525 66560
               </div>
             </div>
 
@@ -1040,6 +1456,22 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             }`}
           >
             Invoices &amp; Invoicing ({invoices.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('gst_ledger')}
+            className={`pb-3.5 text-xs font-bold uppercase tracking-wider relative transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'gst_ledger' ? 'text-fire border-b-2 border-fire' : 'text-dim hover:text-ink'
+            }`}
+          >
+            <Landmark className="w-3.5 h-3.5" />
+            GST Portal &amp; Ledger
+            {client?.bank_details?.gst_ledger?.gstin ? (
+              <span className="bg-jade/15 text-jade text-[10px] px-1.5 py-0.2 rounded font-mono font-bold">
+                {client.bank_details.gst_ledger.gstin.slice(0, 5)}...
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-gold inline-block" title="Ledger not configured"></span>
+            )}
           </button>
         </div>
 
@@ -2066,6 +2498,416 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
+        {/* TAB 4: GST PORTAL & LEDGER MANAGEMENT */}
+        {activeTab === 'gst_ledger' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Header & Quick Action Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-ink via-ink2 to-ink3 text-white p-6 rounded-3xl shadow-xl shadow-ink/10">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-white/10 text-gold backdrop-blur-md">
+                    <Landmark className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-extrabold tracking-tight">GST Portal Ledger Management</h2>
+                  <span className="bg-fire/20 text-fire3 border border-fire3/30 text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full">
+                    Admin Console
+                  </span>
+                </div>
+                <p className="text-xs text-gray-300 max-w-2xl">
+                  Manually update and synchronize the client's electronic cash ledger, ITC credit balance, liability records, and return filing history shown on their portal.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleLoadSampleGstData}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer shadow-sm"
+                  title="Auto-fill with standard active GST taxpayer values"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-gold" />
+                  Load Sample Preset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer"
+                  title="Reload from database"
+                >
+                  <RefreshCcw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Notification Banner */}
+            {gstSaveMsg && (
+              <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 animate-fade-in ${
+                gstSaveMsg.type === 'success' 
+                  ? 'bg-jade/10 border-jade/30 text-jade' 
+                  : 'bg-rose/10 border-rose/30 text-rose'
+              }`}>
+                <div className="flex items-center gap-2.5 text-xs font-bold">
+                  {gstSaveMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>{gstSaveMsg.text}</span>
+                </div>
+                <button
+                  onClick={() => setGstSaveMsg(null)}
+                  className="text-xs opacity-70 hover:opacity-100 font-bold px-2 py-0.5"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {/* Top Quick Live Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-2xl bg-pearl border border-line flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-dim uppercase tracking-wider">Registered GSTIN</span>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-base font-mono font-extrabold text-ink">
+                    {gstin || 'Not Configured'}
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    taxpayerStatus === 'Active' ? 'bg-jade/15 text-jade' : 'bg-gold/15 text-gold'
+                  }`}>
+                    {taxpayerStatus}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-pearl border border-line flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-dim uppercase tracking-wider">Electronic Cash Ledger</span>
+                <div className="mt-2">
+                  <span className="text-2xl font-extrabold text-ink flex items-center">
+                    ₹{(
+                      Number(cashIgstTax) + Number(cashIgstInt) + Number(cashIgstPen) + Number(cashIgstFee) + Number(cashIgstOth) +
+                      Number(cashCgstTax) + Number(cashCgstInt) + Number(cashCgstPen) + Number(cashCgstFee) + Number(cashCgstOth) +
+                      Number(cashSgstTax) + Number(cashSgstInt) + Number(cashSgstPen) + Number(cashSgstFee) + Number(cashSgstOth) +
+                      Number(cashCessTax) + Number(cashCessInt) + Number(cashCessPen) + Number(cashCessFee) + Number(cashCessOth)
+                    ).toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[10px] text-dim block mt-0.5">Live Available Cash</span>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-pearl border border-line flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-dim uppercase tracking-wider">Credit Ledger (ITC)</span>
+                <div className="mt-2">
+                  <span className="text-2xl font-extrabold text-jade flex items-center">
+                    ₹{(
+                      Number(creditIgst) + Number(creditCgst) + Number(creditSgst) + Number(creditCess)
+                    ).toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[10px] text-dim block mt-0.5">Available Input Credit</span>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-pearl border border-line flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-dim uppercase tracking-wider">Net Tax Offset Balance</span>
+                <div className="mt-2">
+                  <span className="text-2xl font-extrabold text-sky flex items-center">
+                    ₹{(
+                      (Number(cashIgstTax) + Number(cashIgstInt) + Number(cashIgstPen) + Number(cashIgstFee) + Number(cashIgstOth) +
+                       Number(cashCgstTax) + Number(cashCgstInt) + Number(cashCgstPen) + Number(cashCgstFee) + Number(cashCgstOth) +
+                       Number(cashSgstTax) + Number(cashSgstInt) + Number(cashSgstPen) + Number(cashSgstFee) + Number(cashSgstOth) +
+                       Number(cashCessTax) + Number(cashCessInt) + Number(cashCessPen) + Number(cashCessFee) + Number(cashCessOth)) +
+                      (Number(creditIgst) + Number(creditCgst) + Number(creditSgst) + Number(creditCess))
+                    ).toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[10px] text-dim block mt-0.5">Total Liquid &amp; ITC Power</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Form to edit GST Ledger */}
+            <form onSubmit={handleSaveGstLedger} className="space-y-8">
+              
+              {/* SECTION 1: Taxpayer Identification */}
+              <div className="border border-line rounded-3xl p-6 sm:p-7 bg-white shadow-sm space-y-5">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-line">
+                  <div className="w-8 h-8 rounded-lg bg-sky/10 text-sky flex items-center justify-center font-bold">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink uppercase tracking-wider">1. GST Registration &amp; Business Profile</h3>
+                    <p className="text-xs text-dim">GST Identification Number and registered entity details</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      GSTIN Number (15 Digits) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={15}
+                      value={gstin}
+                      onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                      placeholder="e.g. 09AAECI4589K1ZK"
+                      className="block w-full px-3.5 py-2.5 bg-pearl border border-line rounded-xl text-ink font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all uppercase tracking-wider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      Trade Name / Entity Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={tradeName}
+                      onChange={(e) => setTradeName(e.target.value)}
+                      placeholder="e.g. Acme Corporate Solutions"
+                      className="block w-full px-3.5 py-2.5 bg-pearl border border-line rounded-xl text-ink font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      Legal Name as per PAN
+                    </label>
+                    <input
+                      type="text"
+                      value={legalName}
+                      onChange={(e) => setLegalName(e.target.value)}
+                      placeholder="e.g. Acme Corporate Solutions Pvt Ltd"
+                      className="block w-full px-3.5 py-2.5 bg-pearl border border-line rounded-xl text-ink font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      Taxpayer Type
+                    </label>
+                    <select
+                      value={taxpayerType}
+                      onChange={(e) => setTaxpayerType(e.target.value)}
+                      className="block w-full px-3.5 py-2.5 bg-pearl border border-line rounded-xl text-ink font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all cursor-pointer"
+                    >
+                      <option value="Regular">Regular Taxpayer</option>
+                      <option value="Composition">Composition Taxpayer</option>
+                      <option value="SEZ Unit / Developer">SEZ Unit / Developer</option>
+                      <option value="Input Service Distributor (ISD)">Input Service Distributor (ISD)</option>
+                      <option value="Casual Taxable Person">Casual Taxable Person</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      Registration Status
+                    </label>
+                    <select
+                      value={taxpayerStatus}
+                      onChange={(e) => setTaxpayerStatus(e.target.value)}
+                      className="block w-full px-3.5 py-2.5 bg-pearl border border-line rounded-xl text-ink font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all cursor-pointer"
+                    >
+                      <option value="Active">Active (Compliant)</option>
+                      <option value="Suspended">Suspended</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: Electronic Cash Ledger */}
+              <div className="border border-line rounded-3xl p-6 sm:p-7 bg-white shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-line gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-gold/10 text-gold flex items-center justify-center font-bold">
+                      <IndianRupee className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-ink uppercase tracking-wider">2. Electronic Cash Ledger Balance</h3>
+                      <p className="text-xs text-dim">Cash available in GST portal by tax head</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-dim">Total Cash Balance</span>
+                    <span className="block text-base font-extrabold text-ink">
+                      ₹{(Number(cashIgstTax) + Number(cashCgstTax) + Number(cashSgstTax) + Number(cashCessTax)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      IGST Cash (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cashIgstTax}
+                      onChange={(e) => setCashIgstTax(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      CGST Cash (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cashCgstTax}
+                      onChange={(e) => setCashCgstTax(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      SGST Cash (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cashSgstTax}
+                      onChange={(e) => setCashSgstTax(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      CESS Cash (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cashCessTax}
+                      onChange={(e) => setCashCessTax(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: Electronic Credit Ledger (ITC) */}
+              <div className="border border-line rounded-3xl p-6 sm:p-7 bg-white shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-line gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-jade/10 text-jade flex items-center justify-center font-bold">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-ink uppercase tracking-wider">3. Electronic Credit Ledger (Input Tax Credit / ITC)</h3>
+                      <p className="text-xs text-dim">ITC available in Credit Ledger for setting off GST liabilities</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-dim">Total ITC Credit Balance</span>
+                    <span className="block text-base font-extrabold text-jade">
+                      ₹{(Number(creditIgst) + Number(creditCgst) + Number(creditSgst) + Number(creditCess)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      IGST Credit (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={creditIgst}
+                      onChange={(e) => setCreditIgst(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      CGST Credit (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={creditCgst}
+                      onChange={(e) => setCreditCgst(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      SGST Credit (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={creditSgst}
+                      onChange={(e) => setCreditSgst(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-pearl/60 border border-line">
+                    <label className="block text-[11px] font-bold text-dim uppercase tracking-wider mb-1.5">
+                      CESS Credit (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={creditCess}
+                      onChange={(e) => setCreditCess(e.target.value)}
+                      placeholder="0"
+                      className="block w-full px-3 py-2 bg-white border border-line rounded-xl text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Submit Bar */}
+              <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-line shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-xs text-dim flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-dim flex-shrink-0" />
+                  <span>
+                    Last Updated: {client?.bank_details?.gst_ledger?.updated_at 
+                      ? new Date(client.bank_details.gst_ledger.updated_at).toLocaleString('en-IN') 
+                      : 'Never synchronized yet'}
+                    {client?.bank_details?.gst_ledger?.updated_by_name && (
+                      <span className="font-semibold text-ink"> ({client.bank_details.gst_ledger.updated_by_name})</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => populateGstFields(client?.bank_details?.gst_ledger, client?.full_name)}
+                    className="px-4 py-2.5 border border-line hover:border-ink rounded-xl text-xs font-bold text-dim hover:text-ink bg-white transition-all cursor-pointer"
+                  >
+                    Reset Form
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={gstSaveLoading}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-fire hover:bg-fire2 text-white text-xs font-bold rounded-xl shadow-lg shadow-fire/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    {gstSaveLoading ? 'Saving & Syncing...' : 'Save & Sync to Client Portal'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        )}
+
       </main>
       
       {/* Admin Footer */}
@@ -2114,7 +2956,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     required
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="e.g. +91 9506166560"
+                    placeholder="e.g. +91 8052566560"
                     className="block w-full px-3 py-2 bg-pearl border border-line rounded-xl text-ink focus:outline-none focus:ring-2 focus:ring-fire/50 focus:border-fire transition-all text-xs font-semibold"
                   />
                 </div>
