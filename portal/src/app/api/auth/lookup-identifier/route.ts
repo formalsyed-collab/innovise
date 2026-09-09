@@ -11,22 +11,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Identifier is required' }, { status: 400 })
     }
 
-    const trimmed = identifier.trim().toLowerCase()
+    const trimmed = identifier.trim()
+    const cleaned = trimmed.replace(/[\s\-()]/g, '')
     const rawDigits = identifier.replace(/\D/g, '')
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Search profiles by email or phone
-    let query = supabase.from('profiles').select('id, email, phone, role').limit(5)
-    
-    if (trimmed.includes('@')) {
-      query = query.ilike('email', trimmed)
-    } else if (rawDigits.length >= 10) {
-      const last10 = rawDigits.slice(-10)
-      query = query.or(`phone.ilike.%${last10}%,email.ilike.%${last10}%`)
-    }
+    // 1. Search profiles by email or exact phone first
+    let matchedProfiles: any[] = []
 
-    const { data: matchedProfiles } = await query
+    if (trimmed.includes('@')) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email, phone, role')
+        .ilike('email', trimmed.toLowerCase())
+        .limit(5)
+      matchedProfiles = data || []
+    } else {
+      // Prioritize EXACT phone match in DB
+      const { data: exactMatches } = await supabase
+        .from('profiles')
+        .select('id, email, phone, role')
+        .or(`phone.eq.${cleaned},phone.eq.${rawDigits}`)
+
+      if (exactMatches && exactMatches.length > 0) {
+        matchedProfiles = exactMatches
+      } else if (rawDigits.length >= 10) {
+        // Fallback only if no exact match exists
+        const last10 = rawDigits.slice(-10)
+        const { data: fallbackMatches } = await supabase
+          .from('profiles')
+          .select('id, email, phone, role')
+          .or(`phone.eq.${last10},phone.eq.91${last10},phone.eq.+91${last10}`)
+        matchedProfiles = fallbackMatches || []
+      }
+    }
 
     if (matchedProfiles && matchedProfiles.length > 0) {
       const authEmails: string[] = []

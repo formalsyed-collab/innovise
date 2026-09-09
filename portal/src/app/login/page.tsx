@@ -12,11 +12,37 @@ const normalizePhone = (phone: string) => {
 
 const getAuthCandidates = (identifier: string): string[] => {
   const trimmed = identifier.trim()
-  const rawDigits = identifier.replace(/\D/g, '')
+  const cleaned = trimmed.replace(/[\s\-()]/g, '')
+  const rawDigits = trimmed.replace(/\D/g, '')
   const candidates: string[] = []
 
   if (trimmed.includes('@')) {
     candidates.push(trimmed.toLowerCase())
+    return candidates
+  }
+
+  // 1. EXACT match for the entered format FIRST
+  // If user entered +91..., try phone_+91...
+  // If user entered 91..., try phone_91...
+  // If user entered 10 digits, try phone_10digits...
+  candidates.push(`phone_${cleaned}@innovise.local`)
+
+  // Also try normalized digits if cleaned had special characters
+  if (rawDigits && rawDigits !== cleaned) {
+    if (cleaned.startsWith('+')) {
+      candidates.push(`phone_+${rawDigits}@innovise.local`)
+    } else {
+      candidates.push(`phone_${rawDigits}@innovise.local`)
+    }
+  }
+
+  // 2. Exact prefix alternates for the SAME prefix type
+  if (cleaned.startsWith('+')) {
+    // If entered +91..., alternate without +
+    candidates.push(`phone_${cleaned.slice(1)}@innovise.local`)
+  } else if (cleaned.startsWith('91') && cleaned.length > 10) {
+    // If entered 91..., alternate with +
+    candidates.push(`phone_+${cleaned}@innovise.local`)
   }
 
   // Admin phone number mappings
@@ -29,13 +55,14 @@ const getAuthCandidates = (identifier: string): string[] => {
     candidates.push('client@innovise.in')
   }
 
-  if (rawDigits.length >= 10) {
+  // 3. Fallbacks ONLY if user typed 10 digits and account might have 91/+91 prefix,
+  // or if user typed 91/+91 and account only had 10 digits
+  if (rawDigits.length === 10) {
+    candidates.push(`phone_91${rawDigits}@innovise.local`)
+    candidates.push(`phone_+91${rawDigits}@innovise.local`)
+  } else if (rawDigits.length > 10) {
     const last10 = rawDigits.slice(-10)
     candidates.push(`phone_${last10}@innovise.local`)
-    candidates.push(`phone_91${last10}@innovise.local`)
-    candidates.push(`phone_+91${last10}@innovise.local`)
-    candidates.push(`phone_${rawDigits}@innovise.local`)
-    candidates.push(`phone_+${rawDigits}@innovise.local`)
   }
 
   return Array.from(new Set(candidates))
