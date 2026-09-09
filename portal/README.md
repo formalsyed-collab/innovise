@@ -44,7 +44,7 @@ To immediately test the application with prepopulated details:
 
 This seeds the following credentials:
 - **Admin Login**: `+918052566560` or `officialtaxinn@gmail.com` / Password: `password123`
-- **Client Login**: `+919876543210` / Password: `password123`
+- **Client Login**: `+919876543210` / Password: `123456789`
 
 ---
 

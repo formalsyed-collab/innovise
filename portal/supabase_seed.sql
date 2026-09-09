@@ -51,7 +51,7 @@ set role = 'admin'
 where id = '11111111-1111-1111-1111-111111111111';
 
 
--- 2. Insert Demo Client User (email: client@innovise.in, password: password123)
+-- 2. Insert Demo Client User (email: client@innovise.in, password: 123456789)
 -- Trigger "on_auth_user_created" will automatically insert a profile row.
 insert into auth.users (
   instance_id,
@@ -79,7 +79,7 @@ insert into auth.users (
   'client@innovise.in',
   '+919876543210',
   now(),
-  crypt('password123', gen_salt('bf', 10)),
+  crypt('123456789', gen_salt('bf', 10)),
   now(),
   '{"provider":"phone","providers":["phone"]}',
   '{"full_name":"Acme Corporate Solutions","phone":"+919876543210","address":"12, Industrial Area, Kanpur, UP","role":"client"}',

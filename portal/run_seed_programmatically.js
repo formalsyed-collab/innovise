@@ -28,7 +28,7 @@ async function main() {
       id: clientId,
       email: 'client@innovise.in',
       phone: '+919876543210',
-      password: 'password123',
+      password: '123456789',
       email_confirm: true,
       phone_confirm: true,
       user_metadata: {
